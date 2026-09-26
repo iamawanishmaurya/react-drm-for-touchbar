@@ -654,25 +654,24 @@ export default function SystemBar({ width, height }: { width: number; height: nu
     return () => clearInterval(id);
   }, []);
 
+  // FIX: this page used to stack every section VERTICALLY in a bar that is
+  // only 60px tall. The overflow was clipped (invisible) but its touch
+  // regions stayed live, so taps on the pomodoro ("tap to start") landed on
+  // buttons from other rows. Everything now fits in ONE horizontal strip,
+  // so every visible pixel maps to exactly one touch region.
   return (
-    <Box style={{ flex: 1 , gap:10  }}>
+    <Box style={{ flex: 1, flexDirection: 'row', alignItems: 'center', gap: 10 }}>
 
-      {/* Back button */}
-     
-     <BackButton animation="slide-down" />
+      <BackButton animation="slide-down" />
       <Sep />
 
       <PomodoroSection />
-
       <Sep />
 
       <AudioVisSection />
-
       <Sep />
 
-      {/* Stats modules */}
-      <Box style={{ }}>
-
+      {/* Stats tiles — one horizontal row */}
       <CpuMod  cores={s.cores} />
       <Sep />
       <MemMod  used={s.mem.used} total={s.mem.total} />
@@ -680,14 +679,10 @@ export default function SystemBar({ width, height }: { width: number; height: nu
       <TempMod temp={s.temp} />
       <Sep />
       <NetMod  rx={s.netRx} tx={s.netTx} iface={s.iface} rxHist={s.rxHist} txHist={s.txHist} />
-      {/* <Sep /> */}
-      {/* <HostMod uptime={s.uptime} /> */}
       {battery && <Sep />}
       {battery && <BatMod bat={battery} />}
-
-       <Sep /> 
+      <Sep />
       <ClockMod time={s.time} />
-      </Box>
 
     </Box>
   );

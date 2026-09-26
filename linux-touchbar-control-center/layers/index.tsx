@@ -147,6 +147,12 @@ const LayerHostInner = forwardRef<LayerHostHandle, {
     keys: (i: number) => layers[i]?.name ?? String(i),
     initial: { p: 1 }, // first layer mounts without animating in
     from:    { p: 0 },
+    // CRITICAL: 'wait' fully unmounts the leaving layer BEFORE the entering
+    // layer mounts. With the default 'sync' mode both layers stay mounted
+    // during (and, if a leave animation stalls, after) the transition, so the
+    // old layer's touch regions remain live in the registry and steal taps
+    // meant for the new layer ("CPU page taps run the previous bar's buttons").
+    mode: 'wait',
     enter: (i: number) => {
       const { toAnim, toDuration, showAfter } = pendingRef.current;
       phaseRef.current.set(layers[i]?.name ?? String(i), { anim: toAnim, phase: 'enter' });

@@ -5,7 +5,8 @@ import { FaChevronLeft, FaChevronRight } from 'react-icons/fa6';
 import { MdVolumeUp, MdWbSunny, MdBrightness4, MdBrightness7, MdVolumeDown, MdApps, MdMicOff, MdSearch, MdSkipPrevious, MdPlayArrow, MdSkipNext, MdVolumeOff, MdCancel } from 'react-icons/md';
 import { CiWavePulse1 } from 'react-icons/ci';
 import { BsWindowDock } from 'react-icons/bs';
-import { FaGrip } from 'react-icons/fa6';
+import { FaGrip, FaCamera } from 'react-icons/fa6';
+import { launch } from '@/lib/services/launch';
 import { useActiveWindow } from '@/lib/hooks/useActiveWindow';
 import { useMediaPlayers } from '@/lib/hooks/useMediaPlayers';
 import { mediaMprisListPinnedAtom } from '@/store/mediaMprisList';
@@ -170,6 +171,7 @@ const BASE_BTNS: Omit<RightBtn, 'onClick'>[] = [
   { key: 'brightness', icon: <MdWbSunny      style={{ width: ICON_SIZE, height: ICON_SIZE }} fill={SELECTED_THEME.textPrimary} stroke="none" />, width: 120 , color:SELECTED_THEME.surface , activeColor:SELECTED_THEME.surfaceVariant},
   { key: 'linux',      icon: <CiWavePulse1        style={{ width: ICON_SIZE, height: ICON_SIZE }} fill={SELECTED_THEME.textPrimary} stroke="none" />, width: 120 , color:SELECTED_THEME.surface , activeColor:SELECTED_THEME.surfaceVariant},
   { key: 'playpause',  icon: <BsWindowDock    style={{ width: ICON_SIZE, height: ICON_SIZE }} fill={SELECTED_THEME.textPrimary} stroke="none" />, width: 120 , color:SELECTED_THEME.surface , activeColor:SELECTED_THEME.surfaceVariant},
+  { key: 'screenshot', icon: <FaCamera        style={{ width: ICON_SIZE, height: ICON_SIZE }} fill="#fbbf24" stroke="none" />, width: 120 , color:SELECTED_THEME.surface , activeColor:SELECTED_THEME.surfaceVariant},
 ];
 
 const EQ_BAR_W = 4;
@@ -237,6 +239,7 @@ export default function SplittedLayout({ width, height, children, path }: {
       volume:     () => { setAudioTrackAnchor(null); go('audio-slider', 'fade'); },
       brightness: () => go('brightness-slider', 'fade'),
       playpause:  () => go('dock', 'slide-up'),
+      screenshot: () => launch('sh', ['-c', 'export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock 2>/dev/null | head -1); exec niri msg action screenshot']),
     };
     const base: RightBtn[] = BASE_BTNS.map(b => ({ ...b, onClick: actions[b.key] ?? (() => {}) }));
     const volumeBtn = base.find(b => b.key === 'volume');
@@ -474,11 +477,12 @@ export default function SplittedLayout({ width, height, children, path }: {
             <Separator />
             <ClusterBtn btn={btnByKey('linux')!} />
             <Separator />
-            <ClusterBtn btn={btnByKey('playpause')!} width={mediaExpanded?120:undefined} rightRound={mediaBtns.length === 5} />
+            <ClusterBtn btn={btnByKey('playpause')!} width={mediaExpanded?120:undefined} />
+            <ClusterBtn btn={btnByKey('screenshot')!} />
             {btnByKey('media') && (
               <>
                 <Separator />
-                <ClusterBtn btn={btnByKey('media')!} rightRound={mediaBtns.length === 6} />
+                <ClusterBtn btn={btnByKey('media')!} />
               </>
             )}
             {btnByKey('customlayer') && (
