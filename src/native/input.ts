@@ -117,9 +117,18 @@ function resolveTouchDevicePath(devicePath?: string): string {
     //   "MacBookPro17,1 Touch Bar"               — M1 MacBook Pro 13" 2020
     //   "Mac14,7 Touch Bar"                      — M2 MacBook Pro 13" 2022
     // All contain "Touch Bar", so one pattern covers all models.
-    for (const block of blocks) {
-      if (!/Touch Bar/i.test(block)) continue;
-      const match = block.match(/Handlers=.*\b(event\d+)\b/);
+    // Two Touch Bar HID nodes can coexist (e.g. after a USB re-authorization
+    // on T2 the iBridge exposes "Apple Inc. Touch Bar Display", a KEYBOARD,
+    // alongside "Apple Inc. Touch Bar Display Touchpad"). Prefer the actual
+    // touchpad name, and fall back to other Touch Bar nodes only if absent —
+    // matching the keyboard first made startup fail with
+    // "Cannot open keyboard device".
+    const touchpadBlock = blocks.find(b =>
+      /Touch Bar.*Touchpad/i.test(b) || /Touchpad.*Touch Bar/i.test(b)
+    );
+    const candidate = touchpadBlock ?? blocks.find(b => /Touch Bar/i.test(b));
+    if (candidate) {
+      const match = candidate.match(/Handlers=.*\b(event\d+)\b/);
       if (match) return `/dev/input/${match[1]}`;
     }
   } catch (e) {
