@@ -120,4 +120,23 @@ touchpad, the bar renders but taps do nothing. Diagnose with:
 cat /proc/bus/input/devices   # find "Touch Bar Display Touchpad"
 ```
 
-and confirm the node react-drm opened (check `/proc/<pid>/fd`) is the same one.
+and confirm the node react-drm opened (check `/proc/<pid>/fd`) is the same one.''
+
+## 9. Systembar: taps fire the wrong control ("tap to start" starts something else)
+
+**Symptom:** opening the systembar (CPU stats page) and tapping the pomodoro
+"tap to start" — or any control — triggers a *different* button's action,
+typically one from the row that renders above/below it. The page has far more
+content than 60px of bar height, stacked in a vertical column.
+
+**Cause:** the overflowing rows are clipped visually (LayerHost has
+`overflow: hidden`) but their **touch regions stay registered**. The
+paint-order hit-test then resolves taps against invisible overlapping
+buttons.
+
+**Fix:** lay the systembar out as a single **horizontal strip** that fits
+60px (back · pomodoro · audio visualizer · CPU · MEM · TEMP · NET · BAT ·
+clock tiles side by side). Every visible pixel maps to exactly one touch
+region. Rule of thumb for any layer: if content overflows the 60px bar,
+its hidden touch regions are still tappable — never stack vertically
+beyond the bar height.
