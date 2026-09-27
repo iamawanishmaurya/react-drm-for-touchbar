@@ -1,4 +1,4 @@
-import type { ConfigData, DesktopAppEntry, JsonValue, SectionName } from './types';
+import type { ConfigData, DesktopAppEntry, JsonValue, SectionName } from './types.js';
 
 let state: ConfigData = {};
 let iconChoices: string[] = [];
