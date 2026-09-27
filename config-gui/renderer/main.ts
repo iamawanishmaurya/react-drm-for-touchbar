@@ -82,14 +82,12 @@ async function main(): Promise<void> {
   showPage(firstWithContent ?? 'behavior');
   wireTopbar();
   wireSearch();
+  console.log('BOOT_OK panels=', document.querySelectorAll('.section-panel').length, 'navItems=', document.querySelectorAll('.nav-item').length, 'sections=', Object.keys(store).length);
 
-  // Live preview (Phase 2): strip canvas + instance the main process owns.
   attachPreviewCanvas(document.getElementById('preview-canvas') as HTMLCanvasElement);
-  window.configApi.onPreviewState(s => {
-    if (s.running && s.port) startPreviewClient(s.port);
+  window.configApi.onPreviewState(ps => {
+    if (ps.running && ps.port) startPreviewClient(ps.port);
   });
-  const ps = await window.configApi.previewState();
-  if (ps.running && ps.port) startPreviewClient(ps.port);
 }
 
 // Page visibility mirrors nav building: a page with sections shows only when
@@ -105,4 +103,17 @@ function hasContent(id: import('./schema').PageId): boolean {
 }
 
 wireWindowControls();
-main();
+main().catch((e: unknown) => {
+  const el = document.getElementById('nav')!;
+  el.textContent = 'BOOT ERROR: ' + (e instanceof Error ? (e.stack ?? e.message) : String(e));
+  el.style.color = '#f87171';
+  el.style.whiteSpace = 'pre-wrap';
+  el.style.fontSize = '10px';
+});
+window.addEventListener('error', e => {
+  const el = document.getElementById('nav')!;
+  el.textContent = 'UNCAUGHT: ' + e.message + '\n' + (e.error?.stack ?? '');
+  el.style.color = '#f87171';
+  el.style.whiteSpace = 'pre-wrap';
+  el.style.fontSize = '10px';
+});

@@ -10,6 +10,7 @@ let stopped = true;
 let latest: { width: number; height: number; rgba: Uint8ClampedArray } | null = null;
 let raf = 0;
 let backoff = 0;
+let announced = false;
 
 function draw(): void {
   raf = 0;
@@ -35,6 +36,7 @@ function connect(port: number): void {
     if (!f) return;
     latest = f;
     canvas?.classList.add('live');
+    if (!announced) { announced = true; console.log('PREVIEW_LIVE w=', f.width, 'h=', f.height); }
     if (!raf) raf = requestAnimationFrame(draw);
   };
   ws.onclose = () => {
