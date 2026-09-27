@@ -244,6 +244,11 @@ Wayland compositor and exits instantly — silently, since stdio is ignored.
 
 **Fix (code, patched here):** when running as root, launch() now derives the
 desktop session's uid from `/run/user/<uid>` (first dir owned by a real
-user), and targets `runuser -u '#<uid>'` — no SUDO_USER dependency at all.
-Verified end-to-end: `launch('nautilus')` executed as root spawns Nautilus in
-the user session.
+user), resolves the username from /etc/passwd, and targets
+`runuser -u <name>`. Note runuser REJECTS sudo-style `#<uid>` targets
+(`user #1000 does not exist`) — the first patch attempt used that and still
+failed silently; a test that succeeds under a sudo shell is not a valid test
+because SUDO_USER leaks in. Reproduce the real environment with
+`sudo env -i PATH=... HOME=/root ... <test>` and verify the process is
+actually running. Verified end-to-end under the exact service env:
+launch('nautilus') as root spawns Nautilus in the user session.

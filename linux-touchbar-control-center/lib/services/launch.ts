@@ -1,5 +1,5 @@
 import { spawn } from 'child_process';
-import { readdirSync, statSync } from 'fs';
+import { readdirSync, readFileSync, statSync } from 'fs';
 import path from 'path';
 import type { DockApp } from '@/lib/utils/configLoader';
 import { createLogger } from 'react-drm';
@@ -29,7 +29,9 @@ export function launch(command: string, args: string[] = []): void {
     // silently (TROUBLESHOOTING.md issue 14).
     const runtimeDir = sudoUid ? `/run/user/${sudoUid}` : findUserRuntimeDir();
     const targetUid  = sudoUid ?? (runtimeDir && path.basename(runtimeDir));
-    if (!runtimeDir || !targetUid) {
+    // runuser needs a real username — it rejects sudo-style `#<uid>` targets.
+    const targetUser = sudoUser ?? (targetUid && findUserName(Number(targetUid)));
+    if (!runtimeDir || !targetUser) {
       log.error('launch failed: no user session found for', command);
       return;
     }
@@ -50,7 +52,7 @@ export function launch(command: string, args: string[] = []): void {
     child = spawn(
       'runuser',
       // runuser accepts a `#<uid>` target, so no username lookup is needed
-      ['-u', sudoUser ?? `#${targetUid}`, '--', 'env', ...env, command, ...args],
+      ['-u', targetUser, '--', 'env', ...env, command, ...args],
       { detached: true, stdio: 'ignore' },
     );
   } else {
@@ -77,6 +79,18 @@ function findUserRuntimeDir(): string | null {
 /** Same as {@link launch}, shaped for the dock's config-driven app entries. */
 export function launchApp(app: DockApp): void {
   launch(app.command, app.args ?? []);
+}
+
+/** Username for a uid, from /etc/passwd (no libc getpwuid in Node). */
+function findUserName(uid: number): string | null {
+  try {
+    const line = readFileSync('/etc/passwd', 'utf8')
+      .split('\n')
+      .find(l => l.split(':')[2] === String(uid));
+    return line ? line.split(':')[0] : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Find the user's Wayland socket name (e.g. `wayland-1`) under their runtime dir. */
