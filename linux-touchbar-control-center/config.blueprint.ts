@@ -4,7 +4,7 @@ import { KEY } from 'react-drm';
 import type { KeyId } from 'react-drm';
 import type { IconType } from 'react-icons';
 import {
-  FaFolder, FaTerminal, FaFirefoxBrowser, FaCode, FaMusic, FaGithub, FaGear,
+  FaFolder, FaTerminal, FaFirefoxBrowser, FaCode, FaMusic, FaGithub, FaGear, FaCamera,
 } from 'react-icons/fa6';
 
 /**
@@ -283,6 +283,9 @@ export const DOCK = {
     { id: 'music',    label: 'Music',    iconName: 'vlc',                    icon: FaMusic,          color: '#c084fc', command: 'vlc',            matchClass: ['vlc'] },
     { id: 'github',   label: 'GitHub',   iconName: 'github',                 icon: FaGithub,         color: '#cccccc', command: 'xdg-open',       args: ['https://github.com'] },
     { id: 'settings', label: 'Settings', iconName: 'systemsettings',         icon: FaGear,           color: '#94a3b8', command: 'systemsettings', matchClass: ['systemsettings'] },
+    { id: 'screenshot', label: 'Screenshot', iconName: 'applets-screenshooter', icon: FaCamera,      color: '#fbbf24',
+      // auto-detect the niri socket, then open niri's screenshot UI
+      command: 'sh', args: ['-c', 'export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock 2>/dev/null | head -1); exec niri msg action screenshot'], matchClass: ['niri-screenshot'] },
   ] as DockApp[],
 
   // Keyboard gesture that toggles the dock layer on/off — same shape as
