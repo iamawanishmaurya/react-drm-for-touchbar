@@ -6,6 +6,7 @@ import { MdVolumeUp, MdWbSunny, MdBrightness4, MdBrightness7, MdVolumeDown, MdAp
 import { CiWavePulse1 } from 'react-icons/ci';
 import { BsWindowDock } from 'react-icons/bs';
 import { FaGrip, FaCamera } from 'react-icons/fa6';
+import { MdSportsEsports } from 'react-icons/md';
 import { launch } from '@/lib/services/launch';
 import { useActiveWindow } from '@/lib/hooks/useActiveWindow';
 import { useMediaPlayers } from '@/lib/hooks/useMediaPlayers';
@@ -172,6 +173,7 @@ const BASE_BTNS: Omit<RightBtn, 'onClick'>[] = [
   { key: 'linux',      icon: <CiWavePulse1        style={{ width: ICON_SIZE, height: ICON_SIZE }} fill={SELECTED_THEME.textPrimary} stroke="none" />, width: 120 , color:SELECTED_THEME.surface , activeColor:SELECTED_THEME.surfaceVariant},
   { key: 'playpause',  icon: <BsWindowDock    style={{ width: ICON_SIZE, height: ICON_SIZE }} fill={SELECTED_THEME.textPrimary} stroke="none" />, width: 120 , color:SELECTED_THEME.surface , activeColor:SELECTED_THEME.surfaceVariant},
   { key: 'screenshot', icon: <FaCamera        style={{ width: ICON_SIZE, height: ICON_SIZE }} fill="#fbbf24" stroke="none" />, width: 120 , color:SELECTED_THEME.surface , activeColor:SELECTED_THEME.surfaceVariant},
+  { key: 'snake',      icon: <MdSportsEsports style={{ width: ICON_SIZE, height: ICON_SIZE }} fill="#4ade80" stroke="none" />, width: 120 , color:SELECTED_THEME.surface , activeColor:SELECTED_THEME.surfaceVariant},
 ];
 
 const EQ_BAR_W = 4;
@@ -240,6 +242,7 @@ export default function SplittedLayout({ width, height, children, path }: {
       brightness: () => go('brightness-slider', 'fade'),
       playpause:  () => go('dock', 'slide-up'),
       screenshot: () => launch('sh', ['-c', 'export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock 2>/dev/null | head -1); exec niri msg action screenshot']),
+      snake:      () => go('snake', 'slide-left'),
     };
     const base: RightBtn[] = BASE_BTNS.map(b => ({ ...b, onClick: actions[b.key] ?? (() => {}) }));
     const volumeBtn = base.find(b => b.key === 'volume');
@@ -479,6 +482,7 @@ export default function SplittedLayout({ width, height, children, path }: {
             <Separator />
             <ClusterBtn btn={btnByKey('playpause')!} width={mediaExpanded?120:undefined} />
             <ClusterBtn btn={btnByKey('screenshot')!} />
+            <ClusterBtn btn={btnByKey('snake')!} />
             {btnByKey('media') && (
               <>
                 <Separator />
