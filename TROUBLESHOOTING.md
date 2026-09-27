@@ -230,3 +230,20 @@ ignored.
 now pushes `XDG_SESSION_TYPE=wayland` alongside `WAYLAND_DISPLAY`. Verified:
 nautilus, ghostty and gnome-text-editor all launch under the exact service
 env once it's set.
+
+## 14. Dock taps register but no app launches, no error anywhere
+
+**Symptom:** journal shows the dock icon tap landing (`tap in-bounds=true` on
+the icon's bounds) yet no window appears and `launch failed` is never logged.
+
+**Cause:** `launch()` only dropped to the user when `SUDO_USER`/`SUDO_UID`
+were set. Those exist under a `sudo` dev run but **not** in the systemd unit
+environment (they were documented as being there — they aren't). The else
+branch then spawned the app **as root**, where it can't reach the user's
+Wayland compositor and exits instantly — silently, since stdio is ignored.
+
+**Fix (code, patched here):** when running as root, launch() now derives the
+desktop session's uid from `/run/user/<uid>` (first dir owned by a real
+user), and targets `runuser -u '#<uid>'` — no SUDO_USER dependency at all.
+Verified end-to-end: `launch('nautilus')` executed as root spawns Nautilus in
+the user session.
