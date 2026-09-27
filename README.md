@@ -13,6 +13,36 @@ The control center provides:
 - Audio visualization, a focus timer and small games
 - Automatic detach and re-attach during suspend and resume
 
+## Changes in this fork (iamawanishmaurya)
+
+All fixes are documented in [TROUBLESHOOTING.md](TROUBLESHOOTING.md):
+
+- Touch device matcher prefers the Touch Bar *Touchpad* (startup crash with sibling keyboard nodes)
+- `brightnessctl` missing: loud one-time error instead of silently dead sliders
+- Systembar relaid out as a horizontal 60px strip (hidden overflowing rows kept live touch regions)
+- Layer transitions unmount the leaving layer before the entering one (`mode: 'wait'`) — stale touch regions no longer steal taps
+- Suspend/resume panel recovery (`packaging/touchbar-recover.service` + `packaging/install-recovery.sh`)
+- New: **Snake** game — gamepad button on the main bar, arrows steer, tap to play/pause
+- New: **Camera** button on the main bar — opens niri's screenshot UI
+- New: `deploy.sh` — deploy from this folder to the running install + restart
+
+## Changes in this fork (iamawanishmaurya)
+
+All fixes are documented in [TROUBLESHOOTING.md](TROUBLESHOOTING.md):
+
+- Touch device matcher prefers the Touch Bar *Touchpad* (startup crash with sibling keyboard nodes)
+- `brightnessctl` missing: loud one-time error instead of silently dead sliders
+- Systembar relaid out as a horizontal 60px strip (hidden overflowing rows kept live touch regions)
+- Layer transitions unmount the leaving layer before the entering one (`mode: 'wait'`) — stale touch regions no longer steal taps
+- Suspend/resume panel recovery (`packaging/touchbar-recover.service` + `packaging/install-recovery.sh`)
+- New: **Snake** game — gamepad button on the main bar, arrows steer, tap to play/pause
+- New: **Camera** button on the main bar — opens niri's screenshot UI
+- New: `deploy.sh` — deploy from this folder to the running install + restart
+
+## Installation
+
+## Installation
+
 ## Installation
 
 react-drm replaces the existing Touch Bar interface. `tiny-dfr`,
