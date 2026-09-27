@@ -139,4 +139,44 @@ buttons.
 clock tiles side by side). Every visible pixel maps to exactly one touch
 region. Rule of thumb for any layer: if content overflows the 60px bar,
 its hidden touch regions are still tappable — never stack vertically
-beyond the bar height.
+beyond the bar height.''
+
+## 10. Panel frozen on an old frame while the daemon works fine ("shows old version")
+
+**Symptom:** the renderer is healthy (touch regions register, taps are
+processed, widgets update in memory) but the physical panel keeps displaying
+a frame from hours/days ago. Taps "work" invisibly while the screen shows
+stale content — the bar you SEE and the bar you TOUCH are two different things.
+
+**Cause:** the appletbdrm driver stopped transmitting framebuffer updates —
+the recurring stale-session problem on T2. Commonly triggered by
+suspend/resume cycles or repeated daemon restarts.
+
+**Diagnose (decisive):** the built-in screenshot combo captures the *internal
+render buffer*, not the panel. Save one and look at it:
+
+- Service runs as root → buffer captures land in `/root/touchbar/`:
+  `sudo cp /root/touchbar/*.png ~/Pictures/touchbar/`
+- If the capture shows the CURRENT UI (new buttons present) → renderer is
+  fine, panel is stale → recovery below.
+- If the capture shows an old layout → the renderer itself regressed; check
+  recently edited files (the hot-reload watcher applies edits live).
+
+**Fix:** reset the display session and restart:
+
+```sh
+sudo systemctl restart react-drm   # ExecStartPre rebinds appletbdrm
+```
+
+**Prevent:** install the suspend/resume recovery hook
+(`packaging/install-recovery.sh` in this repo) so every wake re-initializes
+the panel automatically.
+
+## 11. Screenshot combo saves to /root when the service runs as root
+
+The Ctrl+Alt+S combo calls `display.screenshot()` which writes to
+`SCREENSHOT.dir` — resolved from the *daemon's* environment, so a root-run
+service saves to `/root/touchbar/`. Either copy the files out
+(`sudo cp /root/touchbar/*.png ~/Pictures/touchbar/`) or set
+`SCREENSHOT.dir` in your `config.ts` to an absolute path like
+`/home/<user>/Pictures/touchbar`.
