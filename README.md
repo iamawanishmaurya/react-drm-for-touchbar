@@ -15,6 +15,8 @@ The control center provides:
 
 ## Changes in this fork (iamawanishmaurya)
 
+> **This folder is the primary working folder.** Edit here, deploy with `./deploy.sh`, push to GitHub.
+
 All fixes are documented in [TROUBLESHOOTING.md](TROUBLESHOOTING.md):
 
 - Touch device matcher prefers the Touch Bar *Touchpad* (startup crash with sibling keyboard nodes)
@@ -27,6 +29,8 @@ All fixes are documented in [TROUBLESHOOTING.md](TROUBLESHOOTING.md):
 - New: `deploy.sh` — deploy from this folder to the running install + restart
 
 ## Changes in this fork (iamawanishmaurya)
+
+> **This folder is the primary working folder.** Edit here, deploy with `./deploy.sh`, push to GitHub.
 
 All fixes are documented in [TROUBLESHOOTING.md](TROUBLESHOOTING.md):
 
