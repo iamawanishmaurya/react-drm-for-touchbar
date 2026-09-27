@@ -28,7 +28,13 @@ export function launch(command: string, args: string[] = []): void {
       `DISPLAY=${process.env.DISPLAY ?? ':0'}`,
     ];
     const wayland = detectWayland(runtimeDir);
-    if (wayland) env.push(`WAYLAND_DISPLAY=${wayland}`);
+    if (wayland) {
+      env.push(`WAYLAND_DISPLAY=${wayland}`);
+      // GTK4 refuses to open a display with XDG_SESSION_TYPE unset ("session
+      // type 'unspecified'") even when WAYLAND_DISPLAY is set — the root
+      // service env doesn't carry it, so dock-launched apps died silently.
+      env.push('XDG_SESSION_TYPE=wayland');
+    }
 
     child = spawn(
       'runuser',

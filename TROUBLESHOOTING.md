@@ -212,3 +212,21 @@ was never copied either.
 the fork (source of truth for future installs) and the deployed `config.ts`
 (what actually runs). deploy.sh now documents this; it also uses the correct
 blueprint path.
+
+## 13. Dock icons render but taps "do nothing" (apps die before opening)
+
+**Symptom:** after fixing the dock's commands (issue 12), tapping an icon
+still opens no window — and `launch failed` never appears in the log because
+the spawn itself succeeds; the app crashes microseconds later with stdio
+ignored.
+
+**Cause:** `launch()` dropped from root to the user with only
+`XDG_RUNTIME_DIR`, `DBUS_SESSION_BUS_ADDRESS`, `DISPLAY` and
+`WAYLAND_DISPLAY`. GTK4 needs **`XDG_SESSION_TYPE`** as well: with it unset
+(the root service env doesn't have it) apps fail display init with
+`Unsupported or missing session type 'unspecified'` and exit instantly.
+
+**Fix (code, patched here):** when a Wayland socket is detected, launch()
+now pushes `XDG_SESSION_TYPE=wayland` alongside `WAYLAND_DISPLAY`. Verified:
+nautilus, ghostty and gnome-text-editor all launch under the exact service
+env once it's set.
