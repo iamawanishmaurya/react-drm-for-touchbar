@@ -276,13 +276,15 @@ export const DOCK = {
     size:  5,       // running/focused dot diameter
   },
   apps: [
-    { id: 'files',    label: 'Files',    iconName: 'org.kde.dolphin',        icon: FaFolder,         color: '#7dd3fc', command: 'dolphin',        matchClass: ['dolphin'] },
-    { id: 'terminal', label: 'Terminal', iconName: 'org.kde.konsole',        icon: FaTerminal,       color: '#cccccc', command: 'konsole',        matchClass: ['konsole'] },
+    // Commands must exist on THIS machine (Arch + niri) — a dock tap spawns
+    // the command directly and silently no-ops if it's missing (checked:
+    // dolphin/konsole/code/vlc/systemsettings are not installed here).
+    { id: 'files',    label: 'Files',    iconName: 'org.gnome.Nautilus',     icon: FaFolder,         color: '#7dd3fc', command: 'nautilus',       matchClass: ['org.gnome.Nautilus', 'nautilus'] },
+    { id: 'terminal', label: 'Terminal', iconName: 'org.gnome.Ptyxis',       icon: FaTerminal,       color: '#cccccc', command: 'ghostty',        matchClass: ['ghostty'] },
     { id: 'firefox',  label: 'Firefox',  iconName: 'firefox',                icon: FaFirefoxBrowser, color: '#ff9d5c', command: 'firefox',        matchClass: ['firefox'] },
-    { id: 'code',     label: 'Code',     iconName: 'vscode',                 icon: FaCode,           color: '#60a5fa', command: 'code',           matchClass: ['code', 'vscodium'] },
-    { id: 'music',    label: 'Music',    iconName: 'vlc',                    icon: FaMusic,          color: '#c084fc', command: 'vlc',            matchClass: ['vlc'] },
+    { id: 'text',     label: 'Text',     iconName: 'org.gnome.TextEditor',   icon: FaCode,           color: '#60a5fa', command: 'gnome-text-editor', matchClass: ['org.gnome.TextEditor', 'gnome-text-editor'] },
     { id: 'github',   label: 'GitHub',   iconName: 'github',                 icon: FaGithub,         color: '#cccccc', command: 'xdg-open',       args: ['https://github.com'] },
-    { id: 'settings', label: 'Settings', iconName: 'systemsettings',         icon: FaGear,           color: '#94a3b8', command: 'systemsettings', matchClass: ['systemsettings'] },
+    { id: 'settings', label: 'Settings', iconName: 'org.gnome.Settings',     icon: FaGear,           color: '#94a3b8', command: 'gnome-control-center', matchClass: ['org.gnome.Settings', 'gnome-control-center'] },
     { id: 'screenshot', label: 'Screenshot', iconName: 'applets-screenshooter', icon: FaCamera,      color: '#fbbf24',
       // auto-detect the niri socket, then open niri's screenshot UI
       command: 'sh', args: ['-c', 'export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock 2>/dev/null | head -1); exec niri msg action screenshot'], matchClass: ['niri-screenshot'] },
