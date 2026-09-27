@@ -8,7 +8,12 @@ for d in app layers src others lib components widgets; do
   [ -d "$SRC/linux-touchbar-control-center/$d" ] && \
   cp -r "$SRC/linux-touchbar-control-center/$d/." "$DST/linux-touchbar-control-center/$d/"
 done
-[ -f "$SRC/config.blueprint.ts" ] && cp "$SRC/config.blueprint.ts" "$DST/linux-touchbar-control-center/config.blueprint.ts"
+[ -f "$SRC/linux-touchbar-control-center/config.blueprint.ts" ] && \
+  cp "$SRC/linux-touchbar-control-center/config.blueprint.ts" "$DST/linux-touchbar-control-center/config.blueprint.ts"
+# WARNING: the running app loads the user `config.ts` (seeded at install) when
+# it exists — config.blueprint.ts is only the fallback/default. Machine-local
+# config.ts lives only in $DST and is NOT tracked in this fork; if you edit
+# defaults, patch BOTH files (see TROUBLESHOOTING issue 12).
 systemctl restart react-drm   # passwordless sudo configured; ExecStartPre recovers the panel
 sleep 5
 systemctl is-active react-drm.service

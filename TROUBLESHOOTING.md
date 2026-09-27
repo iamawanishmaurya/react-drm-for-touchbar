@@ -193,3 +193,22 @@ service saves to `/root/touchbar/`. Either copy the files out
 (`sudo cp /root/touchbar/*.png ~/Pictures/touchbar/`) or set
 `SCREENSHOT.dir` in your `config.ts` to an absolute path like
 `/home/<user>/Pictures/touchbar`.
+
+## 12. Config edits deployed via deploy.sh don't take effect
+
+**Symptom:** you fix something in `linux-touchbar-control-center/config.blueprint.ts`,
+run `./deploy.sh`, the service restarts — and the old behavior is still there
+(e.g. dock taps still spawning `dolphin`, which doesn't exist on this machine).
+
+**Cause:** `configLoader.ts` prefers the *user* `config.ts` (seeded from the
+blueprint by `install.sh`) and only falls back to `config.blueprint.ts`. The
+live machine-local `config.ts` exists only in the deployed tree
+(`/home/Astra/opencode/react-drm/linux-touchbar-control-center/`) and is not
+tracked in this fork. `deploy.sh` (older version) also had a wrong source path
+(`$SRC/config.blueprint.ts` at the fork root — no such file), so the blueprint
+was never copied either.
+
+**Fix:** patch BOTH files when changing defaults — `config.blueprint.ts` in
+the fork (source of truth for future installs) and the deployed `config.ts`
+(what actually runs). deploy.sh now documents this; it also uses the correct
+blueprint path.
