@@ -1,0 +1,10 @@
+[Unit]
+Description=Touch Bar panel recovery (rebind appletbdrm after suspend/resume)
+After=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/mtmr --recover
+
+[Install]
+WantedBy=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
