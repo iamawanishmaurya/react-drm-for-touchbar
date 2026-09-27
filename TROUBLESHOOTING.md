@@ -168,9 +168,22 @@ render buffer*, not the panel. Save one and look at it:
 sudo systemctl restart react-drm   # ExecStartPre rebinds appletbdrm
 ```
 
-**Prevent:** install the suspend/resume recovery hook
-(`packaging/install-recovery.sh` in this repo) so every wake re-initializes
-the panel automatically.
+**Prevent (automated, installed 2026-09-28):** `sudo
+packaging/install-recovery.sh` installs two units:
+
+- `touchbar-recover.service` — rebinds appletbdrm after every
+  suspend/resume (fixes the common trigger).
+- `touchbar-watchdog.service` — tails the kernel log for the stale-panel
+  signature (`appletbdrm … *ERROR* Failed to send message (-110)`) and
+  runs `mtmr --recover` + restarts react-drm, debounced to one recovery
+  per 10 minutes (`/run/touchbar-watchdog/last-recover`). Log:
+  `journalctl -t touchbar-watchdog`; recover output lands in
+  `/var/log/touchbar-watchdog-recover.log`.
+
+Limitation: the kernel only logs that signature when the USB transfer
+actually times out; a silently frozen panel with no -110 errors isn't
+detected (no userspace signal exists for that case). Manual fix remains:
+`sudo mtmr --recover && sudo systemctl restart react-drm`.
 
 ## 11. Screenshot combo saves to /root when the service runs as root
 

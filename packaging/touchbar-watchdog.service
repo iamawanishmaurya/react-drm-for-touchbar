@@ -1,0 +1,12 @@
+[Unit]
+Description=Touch Bar stale-panel watchdog — auto-recover when appletbdrm stops transmitting frames
+After=react-drm.service multi-user.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/touchbar-watchdog.sh
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target
