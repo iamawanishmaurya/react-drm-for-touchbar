@@ -242,7 +242,7 @@ export default function SplittedLayout({ width, height, children, path }: {
       brightness: () => go('brightness-slider', 'fade'),
       playpause:  () => go('dock', 'slide-up'),
       screenshot: () => launch('sh', ['-c', 'export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock 2>/dev/null | head -1); exec niri msg action screenshot']),
-      snake:      () => go('snake', 'slide-left'),
+      snake:      () => go('games', 'slide-left'), // gamepad opens the games menu (Snake/Dino/Piano/Pong)
     };
     const base: RightBtn[] = BASE_BTNS.map(b => ({ ...b, onClick: actions[b.key] ?? (() => {}) }));
     const volumeBtn = base.find(b => b.key === 'volume');

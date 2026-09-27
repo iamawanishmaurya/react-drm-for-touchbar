@@ -24,26 +24,29 @@ All fixes are documented in [TROUBLESHOOTING.md](TROUBLESHOOTING.md):
 - Systembar relaid out as a horizontal 60px strip (hidden overflowing rows kept live touch regions)
 - Layer transitions unmount the leaving layer before the entering one (`mode: 'wait'`) — stale touch regions no longer steal taps
 - Suspend/resume panel recovery (`packaging/touchbar-recover.service` + `packaging/install-recovery.sh`)
-- New: **Snake** game — gamepad button on the main bar, arrows steer, tap to play/pause
+- **Automatic stale-panel watchdog** (`packaging/touchbar-watchdog.service`) — watches the kernel log for the appletbdrm `Failed to send message (-110)` signature and auto-recovers (debounced to one recovery per 10 min); verified end-to-end
+- New: **Games menu** behind the gamepad button — Snake (ours) plus the upstream **Dino**, **Piano** and **Pong** games, previously orphaned in `layers/` and now wired in as real routes (`app/games`, `app/dino`, `app/piano`, `app/pong`)
 - New: **Camera** button on the main bar — opens niri's screenshot UI
 - New: `deploy.sh` — deploy from this folder to the running install + restart
+- New: `packaging/preview-capture.mjs` — headless PNG capture + synthetic taps over the preview websocket (used for the screenshots below)
 
-## Changes in this fork (iamawanishmaurya)
+### Screenshots (real renderer output, captured headlessly)
 
-> **This folder is the primary working folder.** Edit here, deploy with `./deploy.sh`, push to GitHub.
+Main bar with the right-hand button cluster:
 
-All fixes are documented in [TROUBLESHOOTING.md](TROUBLESHOOTING.md):
+![main bar](packaging/previews/bar-main.png)
 
-- Touch device matcher prefers the Touch Bar *Touchpad* (startup crash with sibling keyboard nodes)
-- `brightnessctl` missing: loud one-time error instead of silently dead sliders
-- Systembar relaid out as a horizontal 60px strip (hidden overflowing rows kept live touch regions)
-- Layer transitions unmount the leaving layer before the entering one (`mode: 'wait'`) — stale touch regions no longer steal taps
-- Suspend/resume panel recovery (`packaging/touchbar-recover.service` + `packaging/install-recovery.sh`)
-- New: **Snake** game — gamepad button on the main bar, arrows steer, tap to play/pause
-- New: **Camera** button on the main bar — opens niri's screenshot UI
-- New: `deploy.sh` — deploy from this folder to the running install + restart
+Games menu (gamepad button):
 
-## Installation
+![games menu](packaging/previews/bar-games.png)
+
+Snake:
+
+![snake](packaging/previews/bar-snake.png)
+
+Pong:
+
+![pong](packaging/previews/bar-pong.png)
 
 ## Installation
 
