@@ -21,6 +21,13 @@ export interface ConfigApi {
   setIconTheme: (theme: string | null) => Promise<void>;
   listApps: () => Promise<DesktopAppEntry[]>;
   listIconThemes: () => Promise<string[]>;
+  previewState: () => Promise<{ running: boolean; port: number }>;
+  onPreviewState: (cb: (s: { running: boolean; port: number }) => void) => void;
+}
+
+export interface PreviewState {
+  running: boolean;
+  port: number;
 }
 
 export interface DesktopAppEntry {

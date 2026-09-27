@@ -5,6 +5,7 @@ import {
   defaultConfigPaths, ensureConfigExists, readConfig, writeConfig, restartService,
 } from './configEngine';
 import type { ConfigData, ConfigPaths } from './configEngine';
+import { startPreview, stopPreview, previewState } from './preview';
 import { pathToFileURL } from 'node:url';
 import { KEY, appIconSource, setIconTheme } from 'react-drm';
 import { ICON_CHOICES } from './iconList';
@@ -112,8 +113,19 @@ ipcMain.handle('config:meta', () => ({
   keyNames: KEY as Record<string, number>,
 }));
 
-app.whenReady().then(createWindow);
+app.whenReady().then(() => {
+  createWindow();
+  void startPreview();
+});
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });
+
+app.on('before-quit', () => {
+  stopPreview(); // no orphaned preview processes (PREV-02)
+});
+
+ipcMain.handle('preview:start', () => startPreview());
+ipcMain.handle('preview:stop', () => stopPreview());
+ipcMain.handle('preview:state', () => previewState());

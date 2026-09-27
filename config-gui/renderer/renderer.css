@@ -481,3 +481,37 @@ legend {
   width: calc(100% - 12px);
   text-align: center;
 }
+
+
+/* ── Live preview strip (Phase 2) ───────────────────────────────────────────*/
+
+#preview-strip {
+  padding: 12px 16px 4px;
+}
+
+#preview-canvas {
+  display: none;
+  width: 100%;
+  aspect-ratio: 2008 / 60;
+  border-radius: 8px;
+  background: #0d0f14;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+#preview-canvas.live { display: block; }
+
+#preview-canvas:not(.live)::before {
+  content: 'Preview starting…';
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: rgba(255, 255, 255, 0.35);
+  font-size: 13px;
+}
+
+#preview-caption {
+  margin: 4px 0 0;
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.4);
+}

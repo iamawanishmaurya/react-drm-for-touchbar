@@ -1,4 +1,5 @@
 import { store, meta, markSaved } from './state.js';
+import { attachPreviewCanvas, startPreviewClient } from './preview/client.js';
 import { buildNav, buildPages, wireSearch, showPage } from './nav.js';
 import type { SectionName } from './types.js';
 
@@ -81,6 +82,14 @@ async function main(): Promise<void> {
   showPage(firstWithContent ?? 'behavior');
   wireTopbar();
   wireSearch();
+
+  // Live preview (Phase 2): strip canvas + instance the main process owns.
+  attachPreviewCanvas(document.getElementById('preview-canvas') as HTMLCanvasElement);
+  window.configApi.onPreviewState(s => {
+    if (s.running && s.port) startPreviewClient(s.port);
+  });
+  const ps = await window.configApi.previewState();
+  if (ps.running && ps.port) startPreviewClient(ps.port);
 }
 
 // Page visibility mirrors nav building: a page with sections shows only when

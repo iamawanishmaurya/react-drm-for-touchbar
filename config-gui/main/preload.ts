@@ -10,6 +10,10 @@ contextBridge.exposeInMainWorld('configApi', {
   setIconTheme: (theme: string | null) => ipcRenderer.invoke('icon:setTheme', theme),
   listApps: () => ipcRenderer.invoke('apps:list'),
   listIconThemes: () => ipcRenderer.invoke('icon:themes'),
+  previewState: () => ipcRenderer.invoke('preview:state'),
+  onPreviewState: (cb: (s: { running: boolean; port: number }) => void) => {
+    ipcRenderer.on('preview:state', (_e, s) => cb(s));
+  },
 });
 
 contextBridge.exposeInMainWorld('windowApi', {

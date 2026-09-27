@@ -399,11 +399,19 @@ function syncCompiledConfig(configPath: string): void {
   fs.writeFileSync(outFile, output.outputText);
 }
 
+/**
+ * Restarts the Touch Bar service. Tries the root system unit first (this
+ * deployment runs a root react-drm.service with passwordless sudo), then
+ * falls back to the upstream `--user` unit (D-05).
+ */
 export function restartService(): Promise<{ ok: boolean; message: string }> {
   return new Promise(resolve => {
-    exec('systemctl --user restart react-drm.service', (err, _stdout, stderr) => {
-      if (err) resolve({ ok: false, message: stderr.trim() || err.message });
-      else resolve({ ok: true, message: 'react-drm restarted' });
+    exec('sudo -n systemctl restart react-drm', err => {
+      if (!err) { resolve({ ok: true, message: 'react-drm restarted (system unit)' }); return; }
+      exec('systemctl --user restart react-drm.service', (err2, _stdout, stderr) => {
+        if (err2) resolve({ ok: false, message: stderr.trim() || err2.message });
+        else resolve({ ok: true, message: 'react-drm restarted (user unit)' });
+      });
     });
   });
 }

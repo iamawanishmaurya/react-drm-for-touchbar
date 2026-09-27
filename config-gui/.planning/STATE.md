@@ -20,9 +20,15 @@ progress:
 ## Current Position
 
 - **Milestone:** M1 (first)
-- **Phase:** 1 — Modularize the renderer (no behavior change)
-- **Phase status:** not started
-- **Next action:** `/gsd-plan-phase 1`
+- **Phase:** 2 — Live real-render preview (Phase 1 ✅ complete, pushed e66bae4)
+- **Phase status:** code written, builds, 23/23 tests — ONE open bug (empty UI at boot, see `.planning/STATUS.md`)
+- **Next action:** debug per STATUS.md, then verify + commit Phase 2, then Phase 3
+
+## Phase Completion Log
+
+| Phase | Completed | Notes |
+|-------|-----------|-------|
+| 1 | 2026-09-28 | Modularize renderer — done, verified, pushed (e66bae4). SUMMARY+VERIFICATION in phases/01-*/ |
 
 ## Artifacts
 
