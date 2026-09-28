@@ -293,3 +293,25 @@ config.blueprint.ts; lands in `~/Pictures/touchbar/`).
 Caveat: the preview instance is a separate process from the live bar — after
 changing config via the GUI, restart BOTH the real bar and the preview
 instance to see the change in captures.
+
+## 15. After lid close/open the bar shows the old UI (or nothing)
+
+**Symptom:** wake from suspend and the panel holds the pre-suspend frame.
+
+**Cause — three interacting problems (all fixed 2026-09-28 13:5x):**
+1. A restart of react-drm that gets interrupted by the suspend (TERM during
+   ExecStartPre) leaves the service in `failed`, and default start-rate
+   limiting then keeps it dead — no bar at all after wake.
+2. `touchbar-recover.service` used `try-restart`, which skips services that
+   aren't running — so a failed react-drm stayed failed after wake.
+3. The community `t2-suspend.service` runs `systemctl restart tiny-dfr` on
+   resume; react-drm declares `Conflicts=tiny-dfr`, so that alone would stop
+   react-drm and hand the panel to the legacy daemon.
+
+**Fix:**
+- drop-in `/etc/systemd/system/react-drm.service.d/override.conf`:
+  `StartLimitIntervalSec=0` + `Restart=always`.
+- recover unit: `ExecStartPost=/bin/systemctl restart react-drm.service`
+  (unconditional).
+- `systemctl mask tiny-dfr` — it's disabled and never wanted; the masked
+  unit makes t2-suspend's restart a harmless no-op ('-' prefix ignores it).
