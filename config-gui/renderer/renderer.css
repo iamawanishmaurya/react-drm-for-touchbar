@@ -515,3 +515,59 @@ legend {
   font-size: 11px;
   color: rgba(255, 255, 255, 0.4);
 }
+
+
+/* ── Layout page drag editor (Phase 3) ──────────────────────────────────────*/
+
+.bar-mock {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  background: #1c1f26;
+  border-radius: 8px;
+  aspect-ratio: 2008 / 90;
+  overflow-x: auto;
+  margin-bottom: 12px;
+}
+
+.bar-slot { display: flex; min-width: 0; flex: 0 0 auto; }
+.bar-slot-end { flex: 1 1 auto; min-width: 48px; }
+
+.bar-chip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 10px;
+  background: #1a1a2e;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 8px;
+  color: #e5e7eb;
+  font-size: 13px;
+  cursor: grab;
+  user-select: none;
+}
+
+.bar-chip.dragging { opacity: 0.4; }
+.drop-target { outline: 2px dashed #7dd3fc; outline-offset: 2px; border-radius: 6px; }
+
+.mini-btn {
+  border: none;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  font-size: 11px;
+  cursor: pointer;
+  padding: 0 2px;
+}
+.mini-btn:hover { color: #fff; }
+.mini-btn.danger:hover { color: #f87171; }
+
+.palette-row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  padding: 10px;
+  border: 1px dashed rgba(255, 255, 255, 0.15);
+  border-radius: 8px;
+  min-height: 44px;
+  margin-bottom: 12px;
+}

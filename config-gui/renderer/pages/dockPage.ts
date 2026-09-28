@@ -2,6 +2,7 @@ import type { JsonValue } from '../types.js';
 import { caches, isPlainObject, markDirty, meta, onDirtyChange, section, setPath, store, uniqueAppId } from '../state.js';
 import { smallTextInput, renderGenericObject } from '../widgets/fieldRow.js';
 import { openAppPicker } from '../widgets/appPicker.js';
+import { move } from '../dnd/orderModel.js';
 import { buildPagePanel } from './page.js';
 import { UNION_FIELDS } from '../schema.js';
 import type { PageDef } from '../schema.js';
@@ -143,9 +144,48 @@ function renderAppCard(
 ): HTMLElement {
   const card = document.createElement('div');
   card.className = 'app-card';
+  card.draggable = true;
+  card.dataset.idx = String(idx);
+
+  card.addEventListener('dragstart', e => {
+    e.dataTransfer?.setData('text/plain', String(idx));
+    if (e.dataTransfer) e.dataTransfer.effectAllowed = 'move';
+    card.classList.add('dragging');
+  });
+  card.addEventListener('dragend', () => card.classList.remove('dragging'));
+  card.addEventListener('dragover', e => e.preventDefault());
+  card.addEventListener('drop', e => {
+    e.preventDefault();
+    const from = Number(e.dataTransfer?.getData('text/plain'));
+    if (Number.isNaN(from) || from === idx) return;
+    const reordered = move(apps, from, idx);
+    apps.length = 0;
+    apps.push(...reordered);
+    setPath(['DOCK', 'apps'], apps);
+    markDirty();
+    onStructuralChange();
+  });
 
   const header = document.createElement('div');
   header.className = 'app-card-header';
+
+  const up = document.createElement('button');
+  up.textContent = '▲'; up.className = 'mini-btn'; up.title = 'Move earlier';
+  up.addEventListener('click', () => {
+    const reordered = move(apps, idx, idx - 1);
+    apps.length = 0; apps.push(...reordered);
+    setPath(['DOCK', 'apps'], apps);
+    markDirty(); onStructuralChange();
+  });
+  const down = document.createElement('button');
+  down.textContent = '▼'; down.className = 'mini-btn'; down.title = 'Move later';
+  down.addEventListener('click', () => {
+    const reordered = move(apps, idx, idx + 1);
+    apps.length = 0; apps.push(...reordered);
+    setPath(['DOCK', 'apps'], apps);
+    markDirty(); onStructuralChange();
+  });
+  header.append(up, down);
 
   const iconSelect = document.createElement('select');
   for (const choice of meta.iconChoices) {

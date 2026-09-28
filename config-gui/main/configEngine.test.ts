@@ -186,3 +186,37 @@ test('writeConfig refreshes dist/config.js so production (node dist/index.js) se
     assert.match(compiledText, /require\(["']react-drm["']\)/); // KEY import compiled, not left as ESM
   });
 });
+
+test('BAR_LAYOUT string-array round-trips and reorders survive', () => {
+  withFixture(configPath => {
+    const read = readConfig(configPath, BLUEPRINT);
+    assert.deepEqual(read.BAR_LAYOUT, {
+      rightButtons: ['back', 'volume', 'brightness', 'linux', 'playpause', 'screenshot', 'snake'],
+    });
+    writeConfig(configPath, {
+      BAR_LAYOUT: { rightButtons: ['snake', 'back', 'screenshot', 'volume', 'brightness', 'linux', 'playpause'] },
+    });
+    const after = readConfig(configPath, BLUEPRINT);
+    assert.deepEqual(after.BAR_LAYOUT, {
+      rightButtons: ['snake', 'back', 'screenshot', 'volume', 'brightness', 'linux', 'playpause'],
+    });
+  });
+});
+
+test('BAR_LAYOUT reorder leaves every other config section byte-identical', () => {
+  withFixture(configPath => {
+    const before = fs.readFileSync(configPath, 'utf8');
+    writeConfig(configPath, {
+      BAR_LAYOUT: { rightButtons: ['volume', 'back', 'brightness', 'linux', 'playpause', 'screenshot', 'snake'] },
+    });
+    const after = fs.readFileSync(configPath, 'utf8');
+    for (const section of ['export const DISPLAY', 'export const DOCK', 'export const FN_KEYS']) {
+      const extract = (src: string): string => {
+        const i = src.indexOf(section);
+        return i === -1 ? '' : src.slice(i, i + 400);
+      };
+      assert.equal(extract(after), extract(before), `${section} must be untouched`);
+    }
+    assert.match(after, /rightButtons: \["volume", "back",/);
+  });
+});

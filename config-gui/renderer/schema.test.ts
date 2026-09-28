@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { test } from 'node:test';
-import { PAGES, pageOfSection, SECTION_LABELS, SECTION_NAMES } from './schema.js';
+import { BAR_LAYOUT_DEFAULT, KNOWN_BAR_BUTTONS, PAGES, pageOfSection, SECTION_LABELS, SECTION_NAMES } from './schema.js';
 
 // Unit tests for the renderer's pure modules (REL-04). state.ts and schema.ts
 // are DOM-free at import time (document is only touched inside UI functions
@@ -26,4 +26,9 @@ test('D-01 grouping: SCREENSHOT on shortcuts; DOLPHIN/KONSOLE/CAVA on advanced',
 
 test('every section has a label', () => {
   for (const name of SECTION_NAMES) assert.ok(SECTION_LABELS[name]);
+});
+
+test('KNOWN_BAR_BUTTONS covers the blueprint BAR_LAYOUT default order', () => {
+  const ids = KNOWN_BAR_BUTTONS.map(b => b.id);
+  for (const id of BAR_LAYOUT_DEFAULT) assert.ok(ids.includes(id), `palette missing ${id}`);
 });

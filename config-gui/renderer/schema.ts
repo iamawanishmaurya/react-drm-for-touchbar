@@ -78,7 +78,7 @@ export const SECTION_LABELS: Record<SectionName, string> = {
   DEFAULT_VSCODE_KEYS: 'VS Code Keys', VSCODE_KEY_OVERRIDES: 'VS Code Overrides',
   ESC_KEY: 'Esc Key', ACTIVE_WINDOW: 'Active Window', SCREENSHOT: 'Screenshot',
   LAYER_TRANSITION: 'Transitions', DOLPHIN: 'Dolphin', KONSOLE: 'Konsole',
-  SYSTEMBAR: 'System Bar', CAVA: 'Audio Visualizer', FN_LAYER: 'Fn Layer', FN_KEYS: 'Fn Keys',
+  SYSTEMBAR: 'System Bar', CAVA: 'Audio Visualizer', FN_LAYER: 'Fn Layer', FN_KEYS: 'Fn Keys', BAR_LAYOUT: 'Bar Layout',
 };
 
 export const SECTION_DESCRIPTIONS: Record<SectionName, string> = {
@@ -99,6 +99,7 @@ export const SECTION_DESCRIPTIONS: Record<SectionName, string> = {
   CAVA: 'Audio visualizer bars',
   FN_LAYER: 'How the Fn key reaches the F-key layer',
   FN_KEYS: 'Extra keys shown after F1–F12 in the Fn-key layer',
+  BAR_LAYOUT: 'Order of the buttons on the main bar (edited on the Layout page)',
 };
 
 export const UNION_FIELDS: Record<string, string[]> = {
@@ -114,3 +115,18 @@ export const VSCODE_ACTIONS = [
   'run', 'stop', 'stepOver', 'stepInto', 'stepOut', 'undo', 'redo', 'find', 'replace',
   'commandPalette', 'settings',
 ];
+
+// Known main-bar buttons (ids match BASE_BTNS keys in the app's
+// app/splitted/layout.tsx). The Layout page's palette offers exactly these.
+export const KNOWN_BAR_BUTTONS: { id: string; label: string }[] = [
+  { id: 'back', label: 'Back' },
+  { id: 'volume', label: 'Volume' },
+  { id: 'brightness', label: 'Brightness' },
+  { id: 'linux', label: 'Linux' },
+  { id: 'playpause', label: 'Dock' },
+  { id: 'screenshot', label: 'Camera' },
+  { id: 'snake', label: 'Games' },
+];
+
+/** Blueprint default order — schema.test asserts KNOWN_BAR_BUTTONS covers it. */
+export const BAR_LAYOUT_DEFAULT: string[] = ['back', 'volume', 'brightness', 'linux', 'playpause', 'screenshot', 'snake'];

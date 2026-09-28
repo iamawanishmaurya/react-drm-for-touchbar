@@ -12,7 +12,7 @@ const SECTION_NAMES = [
   'SCREENSHOT', 'DOLPHIN', 'KONSOLE', 'SYSTEMBAR', 'CAVA',
   'DEFAULT_BROWSER_KEYS', 'BROWSER_KEY_OVERRIDES',
   'DEFAULT_VSCODE_KEYS', 'VSCODE_KEY_OVERRIDES',
-  'DOCK', 'FN_LAYER', 'FN_KEYS',
+  'DOCK', 'FN_LAYER', 'FN_KEYS', 'BAR_LAYOUT',
 ] as const;
 export type SectionName = typeof SECTION_NAMES[number];
 
@@ -345,11 +345,15 @@ export function writeConfig(configPath: string, changes: ConfigData): void {
   const sf = project.addSourceFileAtPath(configPath);
   const newIconNames = new Set<string>();
 
+  const missing: string[] = [];
   for (const name of SECTION_NAMES) {
     const newValue = changes[name];
     if (newValue === undefined || !isPlainObject(newValue)) continue;
     const init = unwrapObjectLiteral(sf.getVariableDeclaration(name)?.getInitializer());
-    if (!init) continue;
+    // A section not yet present in the user's config.ts (blueprint gained it
+    // after this config was seeded) is appended as a new declaration rather
+    // than silently skipped — otherwise there'd be no way to persist it.
+    if (!init) { missing.push(name); continue; }
 
     if (name === 'DOCK') {
       const apps = newValue.apps;
@@ -358,6 +362,12 @@ export function writeConfig(configPath: string, changes: ConfigData): void {
     } else {
       mergeObjectProperties(init, newValue);
     }
+  }
+
+  for (const name of missing) {
+    const v: JsonValue | undefined = changes[name as SectionName];
+    if (v === undefined || !isPlainObject(v)) continue;
+    sf.addStatements(`\nexport const ${name} = ${valueToLiteralText(v)};\n`);
   }
 
   ensureFa6Imports(sf, newIconNames);
