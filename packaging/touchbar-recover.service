@@ -4,7 +4,10 @@ After=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate
 
 [Service]
 Type=oneshot
-ExecStart=/usr/bin/mtmr --recover
+# On wake the appletbdrm device may not be re-enumerated yet — mtmr --recover
+# fails with "unbind appletbdrm: No such file or directory" (seen 2026-09-28
+# 09:33, leaving a stale panel). Retry while the device settles.
+ExecStart=/bin/sh -c 'for i in 1 2 3 4 5 6; do /usr/bin/mtmr --recover && exit 0; logger -t touchbar-recover "recover attempt $i failed; retrying"; sleep 3; done; exit 1'
 
 [Install]
 WantedBy=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
