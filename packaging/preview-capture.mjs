@@ -49,7 +49,7 @@ function frameToPng(frame) {
 }
 
 let frame = null, lastAt = 0;
-const ws = new WebSocket('ws://127.0.0.1:8787/ws');
+const ws = new WebSocket(`ws://127.0.0.1:${process.env.PREVIEW_PORT ?? 8787}/ws`);
 ws.on('message', (d, isBinary) => {
   if (isBinary) { frame = d.subarray(16); lastAt = Date.now(); }
 });

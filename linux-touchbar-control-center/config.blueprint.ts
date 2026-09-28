@@ -350,3 +350,13 @@ export const CUSTOM_LAYER = {
     doubleMs: 350,
   },
 };
+
+// ─── Bar Layout ──────────────────────────────────────────────────────────────
+
+// Order of the buttons in the right-hand cluster of the main bar. Ids must
+// match the keys in app/splitted/layout.tsx's BASE_BTNS table — unknown ids
+// are filtered out, and an empty/missing value falls back to the built-in
+// order. Edit via the config GUI's Layout page (drag and drop).
+export const BAR_LAYOUT = {
+  rightButtons: ['back', 'volume', 'brightness', 'linux', 'playpause', 'screenshot', 'snake'],
+};

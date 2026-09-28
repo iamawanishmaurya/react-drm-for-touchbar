@@ -17,7 +17,7 @@ import { audioTrackAnchorAtom, ANCHOR_TRACK_W } from '@/store/audioTrackAnchor';
 import type { LayerConfig, LayoutChildren } from '@/lib/routes/loadRoutes';
 import { DEFAULT_CHILD_NAME } from '@/lib/routes/loadRoutes';
 import { go, routerAt } from '@/lib/routes/router-registry';
-import { CUSTOM_LAYER } from '@/lib/utils/configLoader';
+import { BAR_LAYOUT, CUSTOM_LAYER } from '@/lib/utils/configLoader';
 import { SELECTED_THEME } from '@/lib/theme';
 import { keys } from '@/lib/services/keyInjector';
 import path, { relative } from 'path';
@@ -207,6 +207,27 @@ function EqualizerIcon({ playing }: { playing: boolean }) {
   );
 }
 
+// ── Config-driven order (BAR_LAYOUT) ─────────────────────────────────────────
+
+/** Resolves the right-hand cluster order from config BAR_LAYOUT.rightButtons:
+ *  ids are matched against BASE_BTNS keys (unknown ids dropped) and any id
+ *  missing from the config list is appended in its built-in position, so a
+ *  partial config never loses buttons. Empty/missing list → built-in order.
+ *  (REL-03: old configs without BAR_LAYOUT keep working unchanged.) */
+function resolveRightButtons(): RightBtn[] {
+  const byKey = new Map(BASE_BTNS.map(b => [b.key, b]));
+  const configured = (BAR_LAYOUT as { rightButtons?: string[] } | undefined)?.rightButtons;
+  if (!Array.isArray(configured) || configured.length === 0) return BASE_BTNS.map(b => ({ ...b }));
+  const resolved: RightBtn[] = [];
+  const seen = new Set<string>();
+  for (const key of configured) {
+    const base = byKey.get(key);
+    if (base && !seen.has(key)) { resolved.push({ ...base }); seen.add(key); }
+  }
+  for (const b of BASE_BTNS) if (!seen.has(b.key)) resolved.push({ ...b });
+  return resolved;
+}
+
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function SplittedLayout({ width, height, children, path }: {
@@ -244,7 +265,8 @@ export default function SplittedLayout({ width, height, children, path }: {
       screenshot: () => launch('sh', ['-c', 'export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock 2>/dev/null | head -1); exec niri msg action screenshot']),
       snake:      () => go('games', 'slide-left'), // gamepad opens the games menu (Snake/Dino/Piano/Pong)
     };
-    const base: RightBtn[] = BASE_BTNS.map(b => ({ ...b, onClick: actions[b.key] ?? (() => {}) }));
+    // Config-driven order (BAR_LAYOUT): resolve ids → BASE_BTNS entries, wire actions.
+    const base: RightBtn[] = resolveRightButtons().map(b => ({ ...b, onClick: actions[b.key] ?? (() => {}) }));
     const volumeBtn = base.find(b => b.key === 'volume');
     if (volumeBtn) {
       // Enters the anchored live-drag: reads the current volume, anchors the
@@ -472,23 +494,22 @@ export default function SplittedLayout({ width, height, children, path }: {
           right:2,}:{})
              
              }}>
-           {<ClusterBtn width={40} btn={btnByKey('back')!} leftRound />}
-            <Separator />
-            <ClusterBtn btn={btnByKey('volume')!} />
-            <Separator />
-            <ClusterBtn btn={btnByKey('brightness')!} />
-            <Separator />
-            <ClusterBtn btn={btnByKey('linux')!} />
-            <Separator />
-            <ClusterBtn btn={btnByKey('playpause')!} width={mediaExpanded?120:undefined} />
-            <ClusterBtn btn={btnByKey('screenshot')!} />
-            <ClusterBtn btn={btnByKey('snake')!} />
-            {btnByKey('media') && (
-              <>
-                <Separator />
-                <ClusterBtn btn={btnByKey('media')!} />
-              </>
-            )}
+           {/* Config-driven order (BAR_LAYOUT): map mediaBtns in resolved order.
+               Special-cased entries: back keeps width 40 + leftRound, playpause
+               collapses when media is expanded, customlayer stays rightmost with
+               rightRound. Everything else renders in BAR_LAYOUT.rightButtons
+               order with separators between. */}
+           {mediaBtns.filter(b => b.key !== 'customlayer').map((b, i) => {
+              const first = i === 0;
+              const last = i === mediaBtns.filter(x => x.key !== 'customlayer').length - 1 && !btnByKey('customlayer');
+              const width = b.key === 'back' ? 40 : (b.key === 'playpause' && mediaExpanded ? 120 : undefined);
+              return (
+                <React.Fragment key={b.key}>
+                  {i > 0 && <Separator />}
+                  <ClusterBtn btn={b} width={width} leftRound={first} rightRound={last} />
+                </React.Fragment>
+              );
+            })}
             {btnByKey('customlayer') && (
               <>
                 <Separator />
