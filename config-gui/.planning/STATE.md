@@ -20,9 +20,9 @@ progress:
 ## Current Position
 
 - **Milestone:** M1 (first)
-- **Phase:** 2 — Live real-render preview (Phase 1 ✅ complete, pushed e66bae4)
-- **Phase status:** code written, builds, 23/23 tests — ONE open bug (empty UI at boot, see `.planning/STATUS.md`)
-- **Next action:** debug per STATUS.md, then verify + commit Phase 2, then Phase 3
+- **Milestone:** M1 ✅ COMPLETE (2026-09-28) — all 3 phases done, audit passed
+- Phases: 1 modularize ✅ · 2 live preview ✅ (2 visual backstops pending machine GPU recovery) · 3 drag-and-drop BAR_LAYOUT ✅ (real-bar verified)
+- Pushed through a5bda29. Next milestone ideas: preview status chip, click-to-test, field-level search schema
 
 ## Phase Completion Log
 
