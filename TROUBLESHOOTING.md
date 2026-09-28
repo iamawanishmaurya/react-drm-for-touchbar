@@ -252,3 +252,44 @@ because SUDO_USER leaks in. Reproduce the real environment with
 `sudo env -i PATH=... HOME=/root ... <test>` and verify the process is
 actually running. Verified end-to-end under the exact service env:
 launch('nautilus') as root spawns Nautilus in the user session.
+
+## 12. Capturing what the bar shows (preview-instance screenshots)
+
+Two ways to screenshot the Touch Bar, both producing the real renderer output:
+
+**A. Built-in combo (hardware path):** Ctrl+Alt+S on the keyboard — the app's
+own listener saves its internal render buffer as PNG (config: `SCREENSHOT` in
+config.blueprint.ts; lands in `~/Pictures/touchbar/`).
+
+**B. Headless preview capture (scriptable, used for all docs screenshots):**
+
+1. Start a preview instance — the same React app the bar runs, rendering to a
+   websocket instead of the DRM framebuffer:
+
+   ```sh
+   cd /home/Astra/opencode/react-drm/linux-touchbar-control-center
+   PATH="$HOME/.nvm/versions/node/v26.10.0/bin:$PATH" \
+   REACT_DRM_BACKEND=preview REACT_DRM_PREVIEW_PORT=8792 \
+   DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/1000/bus \
+   XDG_RUNTIME_DIR=/run/user/1000 NODE_ENV=production \
+   npx tsx index.tsx   # serves ws://127.0.0.1:8792/ws
+   ```
+
+2. Capture with `packaging/preview-capture.mjs`:
+
+   ```sh
+   cd /home/Astra/opencode/touchbar/react-drm-fork/packaging
+   PREVIEW_PORT=8792 node preview-capture.mjs previews/<name>.png
+   ```
+
+   Frame format: 16-byte little-endian header (width, height) then BGRA rows
+   at 2008×60 — the script swaps BGR→RGB and writes a PNG.
+
+3. Synthetic taps (e.g. open the games menu): append `x,y out2.png` pairs —
+   the script sends `{type:"touchstart",x,y}` + `touchend` over the same ws
+   (the button coordinates come from the bar geometry: the right cluster's
+   gamepad button was at ~1797,30 in the 2008-wide layout).
+
+Caveat: the preview instance is a separate process from the live bar — after
+changing config via the GUI, restart BOTH the real bar and the preview
+instance to see the change in captures.
