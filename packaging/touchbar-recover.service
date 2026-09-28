@@ -8,6 +8,10 @@ Type=oneshot
 # fails with "unbind appletbdrm: No such file or directory" (seen 2026-09-28
 # 09:33, leaving a stale panel). Retry while the device settles.
 ExecStart=/bin/sh -c 'for i in 1 2 3 4 5 6; do /usr/bin/mtmr --recover && exit 0; logger -t touchbar-recover "recover attempt $i failed; retrying"; sleep 3; done; exit 1'
+# After a rebind a static UI never re-flips frames — the bar stays blank until
+# the renderer restarts (seen 2026-09-28 09:39). The restart also re-runs
+# mtmr --recover via react-drm.service's ExecStartPre.
+ExecStartPost=/bin/systemctl try-restart react-drm.service
 
 [Install]
 WantedBy=suspend.target hibernate.target hybrid-sleep.target suspend-then-hibernate.target
