@@ -313,7 +313,7 @@ export const FN_LAYER = {
   //   'hold'       — momentary: the layer shows only while Fn is held (original).
   //   'toggle'     — long-press Fn to switch to it, long-press again to return.
   //   'double-tap' — double-tap Fn to switch to it, double-tap again to return.
-  mode:     'hold' as 'hold' | 'toggle' | 'double-tap',
+  mode:     'double-tap' as 'hold' | 'toggle' | 'double-tap',
   longMs:   350,   // long-press duration when mode === 'toggle'
   doubleMs: 350,   // max gap between taps when mode === 'double-tap'
 };
