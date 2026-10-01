@@ -313,7 +313,7 @@ export const FN_LAYER = {
   //   'hold'       — momentary: the layer shows only while Fn is held (original).
   //   'toggle'     — long-press Fn to switch to it, long-press again to return.
   //   'double-tap' — double-tap Fn to switch to it, double-tap again to return.
-  mode:     'double-tap' as 'hold' | 'toggle' | 'double-tap',
+  mode:     'hold' as 'hold' | 'toggle' | 'double-tap',
   longMs:   350,   // long-press duration when mode === 'toggle'
   doubleMs: 350,   // max gap between taps when mode === 'double-tap'
 };
@@ -359,4 +359,30 @@ export const CUSTOM_LAYER = {
 // order. Edit via the config GUI's Layout page (drag and drop).
 export const BAR_LAYOUT = {
   rightButtons: ['back', 'volume', 'brightness', 'linux', 'playpause', 'screenshot', 'snake'],
+  // Buttons to leave off the bar, by scene id: right-cluster keys ('volume')
+  // and page-qualified left-panel ids ('vscode.run', 'browser.home').
+  hidden: [] as string[],
 };
+// ─── Left panel layout ────────────────────────────────────────────────────────
+
+// Order of the left panel's buttons, per routed page (app/splitted/<page>).
+// The left panel swaps with the focused window — this panel when a VS Code-like
+// window is active, the browser panel for a browser, and so on — so each page
+// has its own key.
+//
+// Semantics match BAR_LAYOUT.rightButtons: ids are matched against that page's
+// built-in buttons, unknown ids are dropped, and any id missing from the list
+// is appended in its built-in position, so a partial config never loses a
+// button. To hide one, list its id in BAR_LAYOUT.hidden. An empty or missing
+// entry falls back to the built-in order.
+//
+// Buttons keep their own group (run / edit / commands on the vscode page), so
+// this orders them *within* their group rather than moving them across groups.
+export const LEFT_LAYOUT = {
+  vscode: {
+    run:      ['run', 'stop', 'stepOver', 'stepInto', 'stepOut'],
+    edit:     ['redo', 'find', 'undo'],
+    commands: ['settings', 'commandPalette'],
+  },
+} as const;
+
