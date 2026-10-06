@@ -1,4 +1,5 @@
 import dbus from 'dbus-next';
+import { openBus } from '@/lib/utils/dbusSafe';
 import type { ActiveWindowBackend } from './types';
 
 // GNOME Wayland via the Window Monitor Pro shell extension
@@ -16,7 +17,7 @@ export const gnome: ActiveWindowBackend = {
   async start(push) {
     let bus: dbus.MessageBus;
     try {
-      bus = dbus.sessionBus();
+      bus = openBus('session', 'gnome');
     } catch { return null; }
 
     try {

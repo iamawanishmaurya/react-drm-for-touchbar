@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import dbus, { MessageBus } from 'dbus-next';
+import { openBus } from '@/lib/utils/dbusSafe';
 
 // State broadcast by the T2 Touch ID bridge (apps/t2-touchid) on the system
 // bus while fprintd is asking for a finger. 'idle' means no prompt is active.
@@ -62,7 +63,7 @@ class TouchIdStore {
   private ensureStarted(): void {
     if (this.iface || this.starting) return;
     this.starting = true;
-    const bus = dbus.systemBus();
+    const bus = openBus('system', 'touchid');
     this.bus = bus;
     void bus.getProxyObject(NAME, PATH, INTROSPECTION)
       .then(obj => {

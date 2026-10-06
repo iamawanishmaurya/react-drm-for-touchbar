@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { allowAction } from '@/lib/services/sandboxActions';
 import dbus, { MessageBus, Variant } from 'dbus-next';
+import { openBus } from '@/lib/utils/dbusSafe';
 import { useActiveWindow } from './useActiveWindow';
 
 // VLC speaks MPRIS2. It registers org.mpris.MediaPlayer2.vlc, and extra
@@ -63,7 +64,7 @@ export function useVlc() {
   // ── Track every VLC MPRIS name on the bus ────────────────────────────────
   useEffect(() => {
     let alive = true;
-    const bus = dbus.sessionBus();
+    const bus = openBus('session', 'vlc');
     busRef.current = bus;
     const svcs = new Set<string>();
     const sync = () => alive && setServices([...svcs]);

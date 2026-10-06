@@ -395,11 +395,26 @@ icons.
 
 **Fix (patched here):** the cache is per user (`$TMPDIR/.react-drm-icons-<uid>`).
 
-## Known: `write EPIPE` on every start
+## Known: `write EPIPE` (cause found 2026-10-06 — fixed)
 
-Every `react-drm` start logs `ERROR hot-reload uncaught exception (process
-survived): Error: write EPIPE` about 3 s in. It predates touchbar-control (seen
-since 2026-09-28 16:22) and the bar runs normally; the cause is not yet traced.
+Logs `ERROR hot-reload uncaught exception (process survived): Error: write EPIPE`.
+Predates touchbar-control (since 2026-09-28 16:22); the bar runs normally throughout.
+
+**Cause:** dbus-next opens its socket lazily, so `try { dbus.sessionBus() } catch {…}`
+cannot catch a handshake failure — the error arrives later as an `error` event on the bus,
+and with no listener attached Node re-emits it as an `uncaughtException`. No D-Bus call
+site attached one. The stack points at `handshake.js:67`, the first byte of the SASL
+handshake, written to a socket the daemon had already closed — consistent with the service
+running as root against the desktop user's session bus, where `EXTERNAL` auth is rejected
+for the uid mismatch.
+
+It is **not** once per start: 6 occurrences across 2 starts, recurring whenever a
+background feature (active-window detection, battery polling) opens a bus.
+
+**Fixed** by `lib/utils/dbusSafe.ts` — `openBus()` attaches an error handler to every bus,
+so a dead bus is one warning line instead of an uncaught exception. The bar's behaviour is
+unchanged; only the journal entry disappears. Making root's session-bus auth succeed is a
+larger, separate change — see `.planning/hardening/FINDINGS-EPIPE.md`.
 
 ## Appendix: capturing what the bar shows (screenshots)
 

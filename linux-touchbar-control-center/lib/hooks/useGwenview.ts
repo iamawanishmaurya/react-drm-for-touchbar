@@ -1,6 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { allowAction } from '@/lib/services/sandboxActions';
 import dbus, { MessageBus } from 'dbus-next';
+import { openBus } from '@/lib/utils/dbusSafe';
 import { useActiveWindow } from './useActiveWindow';
 
 // Unlike Dolphin/Konsole/VLC, Gwenview registers no well-known D-Bus name at
@@ -41,7 +42,7 @@ export function useGwenview() {
   const targetRef = useRef<string | null>(null);
 
   useEffect(() => {
-    const bus = dbus.sessionBus();
+    const bus = openBus('session', 'gwenview');
     busRef.current = bus;
     return () => { busRef.current = null; bus.disconnect(); };
   }, []);

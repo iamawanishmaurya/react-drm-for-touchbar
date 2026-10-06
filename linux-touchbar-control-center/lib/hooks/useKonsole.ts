@@ -6,6 +6,7 @@ import { allowAction } from '@/lib/services/sandboxActions';
 import { keys } from '@/lib/services/keyInjector';
 import { KEY } from 'react-drm';
 import dbus, { MessageBus, ClientInterface } from 'dbus-next';
+import { openBus } from '@/lib/utils/dbusSafe';
 import { Fzf, byLengthAsc } from 'fzf';
 import { useActiveWindow } from './useActiveWindow';
 import { KONSOLE } from '@/lib/utils/configLoader';
@@ -559,7 +560,7 @@ export function useKonsole() {
 
   useEffect(() => {
     let alive = true;
-    const bus = dbus.sessionBus();
+    const bus = openBus('session', 'konsole');
     busRef.current = bus;
 
     async function init() {

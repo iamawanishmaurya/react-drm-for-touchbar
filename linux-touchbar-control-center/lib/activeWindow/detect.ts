@@ -1,5 +1,6 @@
 import fs from 'fs';
 import dbus from 'dbus-next';
+import { openBus } from '@/lib/utils/dbusSafe';
 import { findHyprDir } from './hyprland';
 import { findNiriSocket } from './niri';
 
@@ -45,7 +46,7 @@ function hasX11Socket(): boolean {
 // gnome-shell owns this name on both Wayland and Xorg sessions.
 async function gnomeShellRunning(): Promise<boolean> {
   let bus: dbus.MessageBus;
-  try { bus = dbus.sessionBus(); } catch { return false; }
+  try { bus = openBus('session', 'detect'); } catch { return false; }
   try {
     const obj   = await bus.getProxyObject('org.freedesktop.DBus', '/org/freedesktop/DBus');
     const iface = obj.getInterface('org.freedesktop.DBus');
@@ -60,7 +61,7 @@ async function gnomeShellRunning(): Promise<boolean> {
 // kwin_wayland/kwin_x11 owns this name on both Wayland and Xorg sessions.
 async function kwinRunning(): Promise<boolean> {
   let bus: dbus.MessageBus;
-  try { bus = dbus.sessionBus(); } catch { return false; }
+  try { bus = openBus('session', 'detect'); } catch { return false; }
   try {
     const obj   = await bus.getProxyObject('org.freedesktop.DBus', '/org/freedesktop/DBus');
     const iface = obj.getInterface('org.freedesktop.DBus');

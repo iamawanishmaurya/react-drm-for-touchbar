@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import dbus, { MessageBus, Variant } from 'dbus-next';
+import { openBus } from '@/lib/utils/dbusSafe';
 
 // Modern Chromium builds expose browser media sessions directly. Plasma
 // Browser Integration remains a fallback for browsers without native MPRIS2.
@@ -121,7 +122,7 @@ export function useMediaPlayers(): UseMediaPlayersResult {
   // ── Track matching MPRIS service names on the session bus ──────────────────
   useEffect(() => {
     let alive = true;
-    const bus = dbus.sessionBus();
+    const bus = openBus('session', 'media-players');
     busRef.current = bus;
     const svcs = new Set<string>();
     const sync = () => alive && setServices([...svcs]);

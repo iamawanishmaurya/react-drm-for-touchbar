@@ -2,6 +2,7 @@ import fs from 'fs';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { allowAction } from '@/lib/services/sandboxActions';
 import dbus, { MessageBus } from 'dbus-next';
+import { openBus } from '@/lib/utils/dbusSafe';
 import { DOLPHIN } from '@/lib/utils/configLoader';
 import { useActiveWindow } from './useActiveWindow';
 
@@ -100,7 +101,7 @@ export function useDolphin() {
 
   useEffect(() => {
     let alive = true;
-    const bus = dbus.sessionBus();
+    const bus = openBus('session', 'dolphin');
     busRef.current = bus;
 
     const syncConnected = () => setConnected(svcsRef.current.size > 0);

@@ -3,6 +3,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import dbus from 'dbus-next';
+import { openBus } from '@/lib/utils/dbusSafe';
 import type { ActiveWindow, ActiveWindowBackend } from './types';
 
 // KDE Plasma Wayland via KWin scripting (~/active-window.sh, made push-based).
@@ -55,7 +56,7 @@ export const plasma: ActiveWindowBackend = {
 
   async start(push) {
     let bus: dbus.MessageBus;
-    try { bus = dbus.sessionBus(); } catch { return null; }
+    try { bus = openBus('session', 'plasma'); } catch { return null; }
 
     let journal: ChildProcess | null = null;
     let scriptFile: string | null = null;

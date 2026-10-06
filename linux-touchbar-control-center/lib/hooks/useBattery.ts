@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import dbus from 'dbus-next';
+import { openBus } from '@/lib/utils/dbusSafe';
 
 // Same /sys/class/power_supply reads as app/systembar/page.tsx's readBattery,
 // polled instead of read once — battery state changes slowly, so a long
@@ -45,7 +46,7 @@ export function useBattery(): BatteryInfo | null {
 
     async function setup() {
       try {
-        bus = dbus.systemBus();
+        bus = openBus('system', 'battery');
         const upowerObj = await bus.getProxyObject('org.freedesktop.UPower', '/org/freedesktop/UPower');
         const upower = upowerObj.getInterface('org.freedesktop.UPower');
         const devices: string[] = await (upower as any).EnumerateDevices();

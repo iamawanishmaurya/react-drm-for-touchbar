@@ -1,4 +1,5 @@
 import dbus from 'dbus-next';
+import { openBus } from '@/lib/utils/dbusSafe';
 
 // systemd-logind transport over D-Bus (dbus-next). Owns the system-bus
 // connection and the org.freedesktop.login1 session proxies, and nothing else:
@@ -99,7 +100,7 @@ class LogindSessionHandleImpl implements LogindSessionHandle {
 }
 
 export function createLogindAdapter(bus?: dbus.MessageBus): LogindAdapter {
-  const system = bus ?? dbus.systemBus();
+  const system = bus ?? openBus('system', 'logind');
   const handles = new Map<string, LogindSessionHandleImpl>();
   const addedHandlers = new Set<(handle: LogindSessionHandle) => void>();
   const removedHandlers = new Set<(id: string) => void>();
