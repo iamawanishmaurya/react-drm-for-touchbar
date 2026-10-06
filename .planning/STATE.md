@@ -1,14 +1,14 @@
 ---
 gsd_state_version: "1.0"
 status: in_progress
-stopped_at: Phase 2 done (pending user hardware check), Phase 3 ready
-last_updated: "2026-10-07T00:35:00.000Z"
+stopped_at: Phases 1-5 repo work done; 3 user gates outstanding
+last_updated: "2026-10-07T01:15:00.000Z"
 progress:
   total_phases: 5
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 2
   completed_plans: 2
-  percent: 40
+  percent: 60
 ---
 
 # STATE — Touch Bar Hardening
@@ -44,6 +44,15 @@ progress:
 | 0 (baseline) | 2026-10-06 | Not a roadmap phase. 104 entries committed as `e6cdc2d` on `touchbar-control-hardening`. Baseline **114 tests green** (library 3 · app 45 · touchbar-control 38 · config-gui 28). Report: `.planning/hardening/REPORT-PHASE-0.md` |
 | 1 (exec timeouts) | 2026-10-06 | `execQuick.ts` added (1500 ms SIGKILL timeout, `commandExists` PATH check); `volume.ts` / `mic.ts` / `brightness.ts` converted; 9 new tests. Library **3 passing**, app **54 passing**, both typechecks exit 0. Commit `876a171`. Staged into the running install, **not restarted**. Report: `.planning/hardening/REPORT-PHASE-1.md` |
 | 2 (stall watchdog) | 2026-10-07 | `stallWatchdog.ts` added (worker thread + `SharedArrayBuffer` `hrtime` heartbeat, SIGKILL on stale, both handles `unref`'d); wired into `index.tsx` with pause/resume around sleep; 4 new tests incl. a child that blocks its own main thread. Library **3 passing**, app **58 passing**, both typechecks exit 0. Commit `8124578`. Staged into the running install, **not restarted**. Report: `.planning/hardening/REPORT-PHASE-2.md` |
+
+## Phase Completion Log (continued)
+
+| Phase | Status | Notes |
+|-------|--------|-------|
+| 2 (stall watchdog) | 2026-10-06 | `stallWatchdog.ts` + wiring in `index.tsx`; app **58 passing**. Commit `8124578`. Report: `REPORT-PHASE-2.md` |
+| 3 (compiled bar) | **BLOCKED** | Steps A+B done (`412b2a0`): `deploy.sh` rebuilds the app dist; compiled bar preview exits 124 cleanly. Step C is sudo — user runs it. Report: `REPORT-PHASE-3.md` |
+| 4 (my-t2-fix) | **BLOCKED** | Blocker check: the fork branch is **not pushed**, so submodules cannot resolve. Index (F1–F24, M1–M19 verified) + banner committed in `my-t2-fix` as `77fa00e`; nothing pushed. Report: `REPORT-PHASE-4.md` |
+| 5 (EPIPE) | 2026-10-06 | Cause found: unguarded lazy D-Bus sockets surface handshake failure as `uncaughtException`. `openBus()` helper across all 13 sites; app **61 passing**. Commit `18d05b6`. Report: `REPORT-PHASE-5.md`, `FINDINGS-EPIPE.md` |
 
 ## Blockers
 
