@@ -30,6 +30,21 @@ cp "$SRC/linux-touchbar-control-center/index.tsx" "$DST/linux-touchbar-control-c
 cp "$SRC"/linux-touchbar-control-center/tests/*.test.ts "$DST/linux-touchbar-control-center/tests/"
 [ -f "$SRC/linux-touchbar-control-center/config.blueprint.ts" ] && \
   cp "$SRC/linux-touchbar-control-center/config.blueprint.ts" "$DST/linux-touchbar-control-center/config.blueprint.ts"
+# Rebuild the app's dist/ so a compiled service (react-drm.service running
+# `node dist/index.js`) picks up a deploy. Placed AFTER the copies above — building
+# earlier would compile the destination's previous index.tsx.
+#
+# Deliberately NOT `npm run build` there: that script does `rm -rf dist` first, so a
+# later compile failure would leave the bar with no dist/config.js — the file built
+# from the user's live config.ts, which exists only in $DST and is never restored by
+# a deploy. This variant overwrites in place and keeps whatever is already there.
+if [ "${SKIP_APP_BUILD:-0}" != "1" ]; then
+  ( cd "$DST/linux-touchbar-control-center" \
+    && npx tsc -p tsconfig.json \
+    && npx tsc-alias -p tsconfig.json \
+    && [ -d assets ] && cp -r assets dist/ ) \
+    || echo "WARNING: app build failed — the compiled bar is stale"
+fi
 # WARNING: the running app loads the user `config.ts` (seeded at install) when
 # it exists — config.blueprint.ts is only the fallback/default. Machine-local
 # config.ts lives only in $DST and is NOT tracked in this fork; if you edit
