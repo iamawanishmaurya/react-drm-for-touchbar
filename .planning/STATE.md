@@ -1,14 +1,14 @@
 ---
 gsd_state_version: "1.0"
 status: in_progress
-stopped_at: Phase 1 done (pending user hardware check), Phase 2 ready
-last_updated: "2026-10-06T20:30:00.000Z"
+stopped_at: Phase 2 done (pending user hardware check), Phase 3 ready
+last_updated: "2026-10-07T00:35:00.000Z"
 progress:
   total_phases: 5
-  completed_phases: 1
-  total_plans: 1
-  completed_plans: 1
-  percent: 20
+  completed_phases: 2
+  total_plans: 2
+  completed_plans: 2
+  percent: 40
 ---
 
 # STATE — Touch Bar Hardening
@@ -21,14 +21,21 @@ progress:
 
 ## Current Position
 
-- **Next phase: Phase 2 — stall watchdog** (Phase 1 done, pending the user's hardware check)
-- Spec: `.planning/hardening/PHASE-2-stall-watchdog.md`
+- **Next phase: Phase 3 — machine switch** (Phases 1 and 2 done, both pending the user's
+  hardware check)
+- Spec: `.planning/hardening/PHASE-3-machine-switch.md`
 - Phase 0 complete (baseline committed, 114 tests green)
 - Phase 1 complete as of commit `876a171`: every `wpctl` / `pactl` / `brightnessctl`
   call now goes through `lib/services/execQuick.ts` (1500 ms + SIGKILL) and falls back
   to the last known value. Library **3 passing**, app **54 passing**. The staged deploy
   reached `/home/Astra/opencode/react-drm`; **nothing restarts until the user restarts
   the service**, so the USER CHECK in the report is still PENDING.
+- Phase 2 complete as of commit `8124578`: `lib/services/stallWatchdog.ts` watches a
+  `hrtime` heartbeat from a worker thread and `SIGKILL`s the bar when it goes stale past
+  `REACT_DRM_STALL_MS` (default 15000), which systemd's `Restart=always` turns into a
+  restart. Wired into `index.tsx` after `renderHot`, with `pause()` in `onSleep` and
+  `resume()` in `onResume`. Library **3 passing**, app **58 passing**. Staged into the
+  running install, **not restarted**. Report: `.planning/hardening/REPORT-PHASE-2.md`
 
 ## Phase Completion Log
 
@@ -36,14 +43,16 @@ progress:
 |-------|-----------|-------|
 | 0 (baseline) | 2026-10-06 | Not a roadmap phase. 104 entries committed as `e6cdc2d` on `touchbar-control-hardening`. Baseline **114 tests green** (library 3 · app 45 · touchbar-control 38 · config-gui 28). Report: `.planning/hardening/REPORT-PHASE-0.md` |
 | 1 (exec timeouts) | 2026-10-06 | `execQuick.ts` added (1500 ms SIGKILL timeout, `commandExists` PATH check); `volume.ts` / `mic.ts` / `brightness.ts` converted; 9 new tests. Library **3 passing**, app **54 passing**, both typechecks exit 0. Commit `876a171`. Staged into the running install, **not restarted**. Report: `.planning/hardening/REPORT-PHASE-1.md` |
+| 2 (stall watchdog) | 2026-10-07 | `stallWatchdog.ts` added (worker thread + `SharedArrayBuffer` `hrtime` heartbeat, SIGKILL on stale, both handles `unref`'d); wired into `index.tsx` with pause/resume around sleep; 4 new tests incl. a child that blocks its own main thread. Library **3 passing**, app **58 passing**, both typechecks exit 0. Commit `8124578`. Staged into the running install, **not restarted**. Report: `.planning/hardening/REPORT-PHASE-2.md` |
 
 ## Blockers
 
-**PENDING — user check for Phase 1.** The fix is staged in the running install but the bar
-is still running the old code until the user runs `sudo systemctl restart react-drm` and
-completes the 4-step hardware check in `.planning/hardening/REPORT-PHASE-1.md`. The agent
-must not run sudo or restart the bar. Phase 2 can start in parallel (different files), but
-Phase 1 should not be called passed until the user confirms.
+**PENDING — user check for Phase 2** (retires Phase 1's too, since neither has run yet).
+Both fixes are staged in the running install, but the bar is still running the old code
+until the user runs `sudo systemctl restart react-drm` and completes the hardware check in
+`.planning/hardening/REPORT-PHASE-2.md` (one `stall watchdog: 15000 ms` start line, a
+suspend/resume cycle, and zero `[stall-watchdog] main thread blocked` lines). The agent
+must not run sudo or restart the bar.
 
 Phase 3 needs sudo steps printed for the user; Phase 4 asks before push; Phase 5 needs one
 root D-Bus reproduction.
@@ -81,6 +90,6 @@ delete an existing test to make it pass · never widen scope.
 
 ## Session
 
-**Last session:** 2026-10-06
-**Stopped at:** Milestone created from the hardening plan
-**Resume file:** `.planning/hardening/PHASE-1-exec-timeouts.md`
+**Last session:** 2026-10-07
+**Stopped at:** Phase 2 complete (commit `8124578`), waiting on the user's hardware check
+**Resume file:** `.planning/hardening/PHASE-3-machine-switch.md`
