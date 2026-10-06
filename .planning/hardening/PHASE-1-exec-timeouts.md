@@ -127,7 +127,7 @@ Expected last line: `staged (no restart)`.
 - [ ] Step 5 grep output pasted: only `execQuick.ts` (or justified exceptions)
 - [ ] `npm test` (app) — all pass, including the new file; count ≥ baseline + new tests
 - [ ] `npx tsc --noEmit -p tsconfig.json` (app) → exit 0
-- [ ] Repo-root `npm test` still at baseline
+- [ ] Library tests (`npx tsx --test tests/*.test.ts` at the repo root) still at the Phase 0 baseline
 - [ ] Red-before-green evidence for test 4
 - [ ] `NO_RESTART=1 ./deploy.sh` → `staged (no restart)`; `diff -q` of the 4 service files between fork and `/home/Astra/opencode/react-drm/linux-touchbar-control-center/lib/services/` → no differences
 - [ ] Commit on the branch: `fix(bar): time out wpctl/pactl/brightnessctl calls so a hung audio daemon can't freeze the bar`

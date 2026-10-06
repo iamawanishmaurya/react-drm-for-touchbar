@@ -34,7 +34,8 @@ removes the last dependency on mtmr.
 | Restart | `sudo systemctl restart react-drm` — **sudo is not passwordless; only the user runs it** |
 | App tests | `cd linux-touchbar-control-center && npm test` (`tsx --test tests/*.test.ts`) |
 | App typecheck | `cd linux-touchbar-control-center && npx tsc --noEmit -p tsconfig.json` |
-| Library tests / build | repo root: `npm test`, `npx tsc` |
+| Library tests / build | repo root: `npx tsx --test tests/*.test.ts`, `npx tsc` (there is **no** root `npm test`) |
+| Before app tests | run `npx tsc` at the repo root first — the app imports `react-drm/dist/…` via the `node_modules/react-drm` symlink to the repo root |
 | Editor tests | `cd touchbar-control && npm test`; e2e needs its server: see `touchbar-control/README.md` |
 | Node | `/home/Astra/.nvm/versions/node/v26.10.0/bin` |
 
