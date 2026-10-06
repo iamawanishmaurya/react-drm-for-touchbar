@@ -319,7 +319,17 @@ environment would raise the limit. That is a root change and belongs to Phase 3.
    that ate a `$(`; it is repaired and every `<automated>` block in the plan was re-scanned
    afterwards for that class of corruption — all seven are clean.)
 
-5. **`dev:preview` exits 1 in the fork, not 124, so Done-when 4 is weaker than it looks.**
+5. **The plan's report gate could never pass.** It ran `grep -n '^Status:'`, which does
+   not match this milestone's own report format: `**Status: PASS (pending user check)**`,
+   bold, exactly as `REPORT-PHASE-1.md` writes it. The gate returned 1 on a perfectly good
+   report. Fixed twice: first to `grep -c 'Status: PASS (pending user check)'`, which
+   still returned `3` because the same phrase also appears in the USER CHECK heading and
+   in this deviation; finally to
+   `grep -cE '^\*\*Status: PASS \(pending user check\)\*\*$'`, which pins the header line
+   exactly and returns `1`. (Phase 1's plan carries the same dead gate — left alone, since
+   editing an earlier phase's plan is out of scope here.)
+
+6. **`dev:preview` exits 1 in the fork, not 124, so Done-when 4 is weaker than it looks.**
    Reported honestly above: the fork has no compiled native addon, so the preview dies at
    `createDisplay()` before `renderHot` and the run never reaches the watchdog. I did not
    build the addon (a stray `build/` artifact in the repo tree, outside this phase) and did
@@ -328,7 +338,7 @@ environment would raise the limit. That is a root change and belongs to Phase 3.
    carries the claim instead. This gate should be re-run from the running install, where
    the addon exists, before Phase 3 if anyone wants runtime proof.
 
-6. **The `—` in the watchdog message is `\u2014` in the source.** The plan blessed both the
+7. **The em dash in the watchdog message is `\u2014` in the source.** The plan blessed both the
    escape and the literal character; the escape was used so the committed file is pure
    ASCII. The bytes the worker writes are identical (a real em dash).
 
