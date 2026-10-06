@@ -3,6 +3,7 @@ import path from 'path';
 import { KeyboardReader, PreviewDisplay, createDisplay, renderHot, resolveKeyCode, startPreviewServer, TB_BACKLIGHT_NAMES, DISPLAY_BACKLIGHT_NAMES, TOUCHBAR_DRM_DRIVERS, TOUCHBAR_USB_VENDOR_ID, TOUCHBAR_USB_PRODUCT_ID, TOUCHBAR_USB_BRIDGE } from 'react-drm';
 import { DISPLAY, SCREENSHOT, SLEEP, ESC_KEY } from './lib/utils/configLoader';
 import { attachTouchBar, ensureTouchBarAttached, watchSleep } from '@/lib/services/suspend';
+import { startStallWatchdog, type StallWatchdog } from '@/lib/services/stallWatchdog';
 import { createLogger } from 'react-drm';
 import { startCustomLayer } from '@/lib/customLayer';
 import { getLayout, setLayout } from '@/lib/utils/layoutStore';
@@ -41,6 +42,10 @@ const isPreview = process.env.REACT_DRM_BACKEND === 'preview';
 // the picture — the editor crops widgets out of the streamed frame at their
 // scene coordinates, so pixel shift and dim/off would misalign or blank them.
 const isSandbox = isPreview && process.env.REACT_DRM_SANDBOX === '1';
+
+// Stand-in when the watchdog is off; typed by the interface so it can never
+// drift from the real one.
+const NO_WATCHDOG: StallWatchdog = { pause: () => {}, resume: () => {}, stop: () => {} };
 
 async function main() {
   if (SLEEP.enabled && !isPreview) {
@@ -103,15 +108,35 @@ async function main() {
     //  adaptiveBrightness: true
   });
 
+  // A blocked main thread cannot notice it is stuck: no timer, no SIGTERM
+  // handler and no in-process guard runs while it is blocked. The watchdog
+  // watches a heartbeat from a worker thread and SIGKILLs the process when it
+  // goes stale, which react-drm.service's Restart=always turns back into a
+  // working bar. REACT_DRM_STALL_MS=0 turns it off. Previews are excluded —
+  // touchbar-control's dev server must never be killed by a watchdog.
+  const stallMs = Number(process.env.REACT_DRM_STALL_MS ?? 15000);
+  const watchdogOn = !isPreview && Number.isFinite(stallMs) && stallMs > 0;
+  // A no-op stand-in keeps pause()/resume() unconditional below instead of
+  // threading an optional through the sleep callbacks.
+  const watchdog = watchdogOn ? startStallWatchdog({ stallMs }) : NO_WATCHDOG;
+  if (watchdogOn) log.info(`stall watchdog: ${stallMs} ms`);
+
   if (SLEEP.enabled && !isPreview) {
     watchSleep({
-      onSleep: () => result.suspend(),
+      onSleep: () => {
+        watchdog.pause();
+        result.suspend();
+      },
       onResume: async () => {
         await attachTouchBar();
         // KeyboardReader already auto-reconnects on device loss. Forcing a
         // fresh udev enumeration here races the BCE/T2 resume path and can
         // abort inside libudev before the input tree is stable again.
         result.resume();
+        // Fresh heartbeat on the way back in, after the re-attach: the first
+        // watchdog tick after a resume would otherwise measure the time spent
+        // asleep and kill the bar.
+        watchdog.resume();
       },
     }).catch(e => {
       log.warn('sleep watcher unavailable:', e instanceof Error ? e.message : e);
