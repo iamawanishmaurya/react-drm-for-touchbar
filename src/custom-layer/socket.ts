@@ -10,6 +10,12 @@ import path from 'node:path';
  */
 export function customLayerSocketPath(): string {
   const runtimeDir = process.env.XDG_RUNTIME_DIR || os.tmpdir();
+  // A preview instance (browser preview, touchbar-control's sandbox) gets its
+  // own socket: sharing the path let every preview start unlink and take over
+  // the real bar's socket, cutting config-gui off from the physical bar.
+  if (process.env.REACT_DRM_BACKEND === 'preview') {
+    return path.join(runtimeDir, `react-drm-custom-layer-preview-${process.env.REACT_DRM_PREVIEW_PORT || '8787'}.sock`);
+  }
   return path.join(runtimeDir, 'react-drm-custom-layer.sock');
 }
 

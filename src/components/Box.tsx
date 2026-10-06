@@ -6,6 +6,12 @@ import { LayoutContext } from '../scene/layout-context';
 import { ScrollOffsetContext } from '../scene/scroll-context';
 
 export interface BoxProps {
+  /**
+   * Stable identity for this node (React Native's `nativeID` analogue).
+   * Carried on BoxNode.id and emitted as `data-id` by the SVG serializer so
+   * external tools can address real nodes. Not rendered on the Touch Bar.
+   */
+  id?: string;
   x?: number;
   y?: number;
   width?: number;

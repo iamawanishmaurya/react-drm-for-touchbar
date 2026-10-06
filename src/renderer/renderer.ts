@@ -5,6 +5,9 @@ import React from 'react';
 import { reconciler } from './reconciler';
 import { setRepaint } from './invalidate';
 import { serializeScene, frameSignature, damageRects, toBinaryBuffer } from '../scene/serialize';
+import { sceneToSvg } from '../scene/svg-serialize';
+import { sceneBoxes } from '../scene/scene-boxes';
+import type { SceneBox } from '../scene/scene-boxes';
 import type { DrawCommand } from '../scene/serialize';
 import { computeLayoutYoga, loadYogaEngine, yogaReady } from '../scene/layout-yoga';
 import { resolveInheritance } from '../scene/inherit';
@@ -121,6 +124,24 @@ export interface RenderResult {
    * reopens the display, restarts the watchers and repaints the latest scene.
    */
   resume: () => void;
+
+  /**
+   * The current scene as an SVG document, using the same post-Yoga layout the
+   * Cairo path paints from. Nodes carrying an `id` come out as
+   * `<g data-id="…">`, which is what lets external tools address real widgets
+   * instead of inferring them from pixels. Returns '' before the first commit.
+   *
+   * Pixel positions/colors are exact; rasterization is the caller's, so text
+   * and antialiasing can differ from the panel's Cairo output.
+   */
+  toSvg: (options?: { background?: string }) => string;
+
+  /**
+   * Geometry of every `id`-tagged widget in the current scene: layout box,
+   * the part left visible after ancestor clips, and effective opacity. What an
+   * editor overlays on the streamed frame. Empty before the first commit.
+   */
+  sceneBoxes: () => SceneBox[];
 }
 
 // ── Input device helpers ──────────────────────────────────────────────────────
@@ -1014,6 +1035,18 @@ export function render(
     touchMove:  (x, y) => { wake(); registry.touchMove(x, y); },
     touchEnd:   (x, y) => { wake(); registry.touchEnd(x, y); },
     wake,
+    toSvg: (opts: { background?: string } = {}) =>
+      // Layout is rebuilt on commit; before the first one there is nothing
+      // meaningful to serialize.
+      layoutValid
+        ? sceneToSvg(container, layoutRef.current, {
+            width: display.width, height: display.height, background: opts.background,
+          })
+        : '',
+    sceneBoxes: () =>
+      layoutValid
+        ? sceneBoxes(container, layoutRef.current, { width: display.width, height: display.height })
+        : [],
     suspend,
     resume,
   };

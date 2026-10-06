@@ -13,6 +13,48 @@ The control center provides:
 - Audio visualization, a focus timer and small games
 - Automatic detach and re-attach during suspend and resume
 
+## touchbar-control (live editor)
+
+[`touchbar-control/`](touchbar-control/README.md) is a local website for
+seeing and editing the bar:
+
+- **Use** — the real bar running live in the browser (real data, animations,
+  touch), in a *sandbox* copy that can't change your physical Touch Bar
+- **Preview as app** — see the bar exactly as Firefox, Chrome, VS Code,
+  Konsole, VLC, Dolphin, Gwenview… would get it, without switching windows
+- **Safe preview** — taps that would press keys or launch apps are simulated
+  and listed, unless you turn on real actions
+- **Screens** — jump the preview to the dock, system bar, F-keys, sliders or
+  any game without tapping your way there
+- **Edit** — the bar splits into tiles cut from its own frames; drag to
+  reorder or hide, with a palette, properties, undo/redo, presets, import /
+  export and a config view; every app panel (VS Code, browsers, Konsole, VLC,
+  Dolphin, Gwenview) is arrangeable; **Apply** writes `config.ts` and restarts
+  the bar
+- **Live on Touch Bar** — show every edit on the physical bar instantly (no
+  Apply, no restart); turning it off or closing the site restores the saved
+  layout
+- **Undo after Apply** — each Apply keeps the previous `config.ts`; undo from
+  the notice or restore any earlier one
+
+```sh
+cd touchbar-control && npm install && npm start   # → http://127.0.0.1:3100
+```
+
+Built with shadcn/ui; full guide, API and architecture in
+[touchbar-control/README.md](touchbar-control/README.md).
+
+## Touch Bar designer (mtmr-designer bridge — superseded by touchbar-control)
+
+A live visual editor for the bar lives at `../mtmr-designer` and is bridged to
+this app: the canvas shows the **running** bar (click a button to drive it,
+drag to reorder, Alt+click to edit) and the layout strip below holds your
+pending edits.
+
+- Architecture, config (`BAR_LAYOUT` / `LEFT_LAYOUT`), endpoints and deployment:
+  [DESIGNER.md](DESIGNER.md)
+- Editor: `packaging/start-mtmr-designer.sh` → http://localhost:3001
+
 ## Changes in this fork (iamawanishmaurya)
 
 > **This folder is the primary working folder.** Edit here, deploy with `./deploy.sh`, push to GitHub.
@@ -28,6 +70,24 @@ All fixes are documented in [TROUBLESHOOTING.md](TROUBLESHOOTING.md):
 - New: **Games menu** behind the gamepad button — Snake (ours) plus the upstream **Dino**, **Piano** and **Pong** games, previously orphaned in `layers/` and now wired in as real routes (`app/games`, `app/dino`, `app/piano`, `app/pong`)
 - New: **Camera** button on the main bar — opens niri's screenshot UI
 - New: `deploy.sh` — deploy from this folder to the running install + restart
+  (`NO_RESTART=1` stages the files without restarting the bar; `SKIP_LIB=1`
+  skips the library rebuild)
+- New: **touchbar-control** — live editor website (see above)
+- New: config-driven layout — `BAR_LAYOUT.rightButtons` / `BAR_LAYOUT.hidden`
+  and `LEFT_LAYOUT` (vscode, browser, konsole, vlc, dolphin and gwenview
+  panels) order and hide buttons; read
+  through a live layout store (`lib/utils/layoutStore.ts`)
+- New: sandbox mode (`REACT_DRM_SANDBOX=1`, preview backend only) — layout,
+  focus override and simulated actions controllable over the preview server
+- Library: `sceneBoxes()` (widget geometry), `sceneToSvg()`, preview-server
+  JSON routes and per-frame scene messages
+- Fixed: reordering children at runtime rendered every moved child twice
+  (reconciler; TROUBLESHOOTING 16)
+- Fixed: the SVG scene export drew every fill almost black (TROUBLESHOOTING 17)
+- New: live layout socket on the physical bar (`lib/services/liveLayout.ts`) —
+  layout-only, owner-only, leased to the editor's connection
+- Fixed: preview instances took over the real bar's Custom Layer socket, and
+  a root service's socket refused the desktop user (TROUBLESHOOTING 22)
 - New: `packaging/preview-capture.mjs` — headless PNG capture + synthetic taps over the preview websocket (used for the screenshots below)
 
 ### Screenshots (real renderer output, captured headlessly)
@@ -47,8 +107,6 @@ Snake:
 Pong:
 
 ![pong](packaging/previews/bar-pong.png)
-
-## Installation
 
 ## Installation
 
@@ -72,6 +130,26 @@ The installer performs three phases:
    installations after a separate confirmation.
 3. **Deploy** installs dependencies, builds the current local source, installs
    the udev rules and production user service, and starts react-drm.
+
+What you get after a successful install:
+
+| | |
+|---|---|
+| **The Touch Bar** | `react-drm.service` (user service) — starts at login |
+| **touchbar-control** | the live editor at **http://127.0.0.1:3100** — `touchbar-control.service` (user service, local-only) and a *Touch Bar Control* launcher |
+| **Touch Bar Config** | the config editor app (launcher) |
+
+Optionally add the **recovery services** — root services that re-initialize the
+Touch Bar display after suspend/resume and when its panel freezes on an old
+frame (see [TROUBLESHOOTING.md](TROUBLESHOOTING.md) issues 10 and 15):
+
+```sh
+./install.sh install --with-recovery
+```
+
+They can also be added or removed later with
+`sudo packaging/install-recovery.sh [--remove]`; the one-off manual fix is
+`sudo react-drm-recover` (or `sudo system/react-drm-recover` from the repo).
 
 It can also update an existing installation. Update the local source using the
 same method used to obtain it, then run the updated `install.sh` again. The
@@ -112,8 +190,10 @@ Run the separate uninstaller from the repository root:
 ```
 
 It stops and removes the react-drm user service, restores the firmware Touch
-Bar interface and removes the react-drm udev rules. Project files, npm
-dependencies, system packages and `video`/`input` group memberships are left
+Bar interface and removes the react-drm udev rules. It also removes the
+touchbar-control service and launchers, and the recovery services if they were
+installed. Project files, npm dependencies, system packages and
+`video`/`input` group memberships are left
 unchanged.
 
 ### Manual installation
@@ -210,6 +290,22 @@ The service runs without root privileges. It attaches the Touch Bar when the
 graphical session starts, restores the firmware interface when the session
 ends and handles suspend and resume. The firmware function-key strip remains
 available before login and after logout.
+
+### Manual installation: touchbar-control (optional)
+
+The live editor is its own npm project. From the repository root:
+
+```sh
+(cd touchbar-control && npm ci && npm run build)
+install -Dm644 system/touchbar-control.service ~/.config/systemd/user/touchbar-control.service
+install -Dm644 system/touchbar-control.desktop ~/.local/share/applications/touchbar-control.desktop
+systemctl --user daemon-reload
+systemctl --user enable --now touchbar-control.service
+```
+
+Like `react-drm.service`, the unit expects the repository at `~/react-drm`;
+otherwise edit `WorkingDirectory`, `ExecStart` and `REACT_DRM_DIR` in the
+installed unit. Then open http://127.0.0.1:3100.
 
 ## Manual start
 
@@ -339,6 +435,21 @@ npm run preview:window
 ```
 
 Press <kbd>Esc</kbd> while it's focused to close it (it has no titlebar).
+
+### Scene endpoints
+
+Besides the frame stream, a preview instance describes what it drew:
+
+| Path | |
+|---|---|
+| `GET /svg` | the scene as SVG; widgets with an `id` become `<g data-id=…>` |
+| `GET /scene` | every `id`-tagged widget's box, visible area and opacity (`sceneBoxes()`) |
+| `GET /layout-schema` | arrangeable buttons, panels and app previews |
+| `GET /layout` | the live button layout |
+
+With `REACT_DRM_SANDBOX=1` it also accepts `POST /layout`, `/active-window`
+and `/actions`, sends each frame's scene just before the frame, and disables
+dimming and pixel shift — see [touchbar-control](touchbar-control/README.md#api).
 
 ### Notes
 

@@ -1,8 +1,11 @@
 import { keys } from '@/lib/services/keyInjector';
 import { execFile } from 'child_process';
+import { actionsAreReal } from '@/lib/services/sandboxActions';
 import { browserKeysFor } from '@/lib/utils/configLoader';
 
 function focusWindow(windowClass: string): void {
+  // Part of a key combo; a simulated sandbox records the combo itself.
+  if (!actionsAreReal()) return;
   if (process.env.WAYLAND_DISPLAY) {
     execFile('hyprctl', ['dispatch', 'focuswindow', `class:${windowClass}`], () => {});
   } else {

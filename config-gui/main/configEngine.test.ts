@@ -192,6 +192,7 @@ test('BAR_LAYOUT string-array round-trips and reorders survive', () => {
     const read = readConfig(configPath, BLUEPRINT);
     assert.deepEqual(read.BAR_LAYOUT, {
       rightButtons: ['back', 'volume', 'brightness', 'linux', 'playpause', 'screenshot', 'snake'],
+      hidden: [],
     });
     writeConfig(configPath, {
       BAR_LAYOUT: { rightButtons: ['snake', 'back', 'screenshot', 'volume', 'brightness', 'linux', 'playpause'] },
@@ -199,6 +200,7 @@ test('BAR_LAYOUT string-array round-trips and reorders survive', () => {
     const after = readConfig(configPath, BLUEPRINT);
     assert.deepEqual(after.BAR_LAYOUT, {
       rightButtons: ['snake', 'back', 'screenshot', 'volume', 'brightness', 'linux', 'playpause'],
+      hidden: [],
     });
   });
 });
@@ -218,5 +220,35 @@ test('BAR_LAYOUT reorder leaves every other config section byte-identical', () =
       assert.equal(extract(after), extract(before), `${section} must be untouched`);
     }
     assert.match(after, /rightButtons: \["volume", "back",/);
+  });
+});
+
+test('BAR_LAYOUT.hidden keeps its `as string[]` cast when written', () => {
+  withFixture(configPath => {
+    writeConfig(configPath, { BAR_LAYOUT: { hidden: ['volume', 'vscode.run'] } });
+    const text = fs.readFileSync(configPath, 'utf8');
+    assert.match(text, /hidden: \["volume", "vscode\.run"\] as string\[\]/);
+    assert.deepEqual((readConfig(configPath, BLUEPRINT).BAR_LAYOUT as { hidden: string[] }).hidden, ['volume', 'vscode.run']);
+  });
+});
+
+test('LEFT_LAYOUT reorders a group and gains a new page, including under `as const`', () => {
+  withFixture(configPath => {
+    // The machine-local config.ts declares LEFT_LAYOUT `as const`; mirror that.
+    const src = fs.readFileSync(configPath, 'utf8')
+      .replace(/(export const LEFT_LAYOUT = \{[\s\S]*?\n\})(;)/, '$1 as const$2');
+    fs.writeFileSync(configPath, src);
+    writeConfig(configPath, {
+      LEFT_LAYOUT: {
+        vscode: { run: ['stop', 'run', 'stepOver', 'stepInto', 'stepOut'] },
+        browser: { tabs: ['closeTab', 'newTab'] },
+      },
+    });
+    const text = fs.readFileSync(configPath, 'utf8');
+    assert.match(text, /\} as const;/);
+    const left = readConfig(configPath, BLUEPRINT).LEFT_LAYOUT as Record<string, Record<string, string[]>>;
+    assert.deepEqual(left.vscode.run, ['stop', 'run', 'stepOver', 'stepInto', 'stepOut']);
+    assert.deepEqual(left.browser, { tabs: ['closeTab', 'newTab'] });
+    assert.ok(left.vscode.edit.length > 0, 'untouched groups survive');
   });
 });

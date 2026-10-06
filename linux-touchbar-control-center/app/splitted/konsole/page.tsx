@@ -8,6 +8,9 @@ import {
 } from 'react-icons/md';
 import { useKonsole } from '@/lib/hooks/useKonsole';
 import { SELECTED_THEME } from '@/lib/theme';
+import { useLayout } from '@/lib/utils/layoutStore';
+import { LEFT_BUILT_IN } from '@/lib/utils/layoutSchema';
+import { resolveLeftGroup, leftButtonId } from '../leftOrder';
 
 const PRIMARY  = SELECTED_THEME.primary;
 const ERROR = SELECTED_THEME.error;
@@ -22,14 +25,17 @@ export default function KonsolePanel({ width, height }: { width: number; height:
     connected, tabCount, activeTabIdx, status, suggestions,
     newTab, closeTab, nextTab, prevTab, sendSuggestion,
   } = useKonsole();
+  const layout = useLayout();
 
   const ICON_SZ   =32;
   const DOT_SZ    = 8;
   const middleW   = Math.round(width * 0.65);
 
-  function Btn({ onClick, children, accent }: { onClick: () => void; children: React.ReactNode; accent?: string }) {
+  function Btn({ onClick, children, id }: { onClick: () => void; children: React.ReactNode; id: string }) {
     return (
       <Button
+        // Page-qualified identity (konsole.newTab, …) for editors.
+        id={id}
         color={SELECTED_THEME.surface}
         activeColor={SELECTED_THEME.surfaceVariant ?? PRIMARY}
         style={{ height, alignItems: 'center', justifyContent: 'center', borderRadius: 10, flex: 1  , borderColor:SELECTED_THEME.border , borderWidth:SELECTED_THEME.borderWidth}}
@@ -55,6 +61,16 @@ export default function KonsolePanel({ width, height }: { width: number; height:
     );
   }
 
+  const tabsOrder    = resolveLeftGroup(layout, 'konsole', 'tabs', LEFT_BUILT_IN.konsole.tabs);
+  const actionsOrder = resolveLeftGroup(layout, 'konsole', 'actions', LEFT_BUILT_IN.konsole.actions);
+  const ON_CLICK: Record<string, () => void> = { prevTab, nextTab, newTab, closeTab };
+  const ICON: Record<string, React.ReactNode> = {
+    prevTab:  <MdChevronLeft style={{ width: ICON_SZ, height: ICON_SZ }} fill={DIM} stroke="none" />,
+    nextTab:  <MdChevronRight style={{ width: ICON_SZ, height: ICON_SZ }} fill={DIM} stroke="none" />,
+    newTab:   <MdAdd style={{ width: ICON_SZ, height: ICON_SZ }} fill={SELECTED_THEME.success} stroke="none" />,
+    closeTab: <MdClose style={{ width: ICON_SZ, height: ICON_SZ }} fill={SELECTED_THEME.error} stroke="none" />,
+  };
+
   const dotColor   = status.isRunning ? ERROR : PRIMARY;
   const statusText = status.isRunning ? status.foregroundCmd : status.cwd;
   const CHIP_RENDER_W = CHIP_W * 3;
@@ -63,18 +79,20 @@ export default function KonsolePanel({ width, height }: { width: number; height:
   return (
     <Box style={{ flex: 1, flexDirection: 'row', gap: 4 }}>
 
-      {/* ── Tab navigation ── */}
-      <Btn onClick={prevTab}>
-        <MdChevronLeft style={{ width: ICON_SZ, height: ICON_SZ }} fill={DIM} stroke="none" />
-      </Btn>
-      <Box style={{ width: 40, alignItems: 'center', justifyContent: 'center' }}>
-        <Text color={DIM} fontSize={11}>
-          {tabCount > 0 ? `${activeTabIdx + 1}/${tabCount}` : '–'}
-        </Text>
-      </Box>
-      <Btn onClick={nextTab}>
-        <MdChevronRight style={{ width: ICON_SZ, height: ICON_SZ }} fill={DIM} stroke="none" />
-      </Btn>
+      {/* ── Tab navigation (LEFT_LAYOUT.konsole.tabs) — the tab counter
+          stays after the first button, where it sits by default ── */}
+      {tabsOrder.map((id, i) => (
+        <React.Fragment key={id}>
+          <Btn id={leftButtonId('konsole', id)} onClick={ON_CLICK[id]}>{ICON[id]}</Btn>
+          {i === 0 && (
+            <Box style={{ width: 40, alignItems: 'center', justifyContent: 'center' }}>
+              <Text color={DIM} fontSize={11}>
+                {tabCount > 0 ? `${activeTabIdx + 1}/${tabCount}` : '–'}
+              </Text>
+            </Box>
+          )}
+        </React.Fragment>
+      ))}
 
       <Sep />
 
@@ -111,12 +129,10 @@ export default function KonsolePanel({ width, height }: { width: number; height:
 
       <Sep />
 
-      <Btn onClick={newTab} accent={PRIMARY}>
-        <MdAdd style={{ width: ICON_SZ, height: ICON_SZ }} fill={SELECTED_THEME.success} stroke="none" />
-      </Btn>
-      <Btn onClick={closeTab} accent={SELECTED_THEME.error}>
-        <MdClose style={{ width: ICON_SZ, height: ICON_SZ }} fill={SELECTED_THEME.error} stroke="none" />
-      </Btn>
+      {/* ── Tab actions (LEFT_LAYOUT.konsole.actions) ── */}
+      {actionsOrder.map(id => (
+        <Btn key={id} id={leftButtonId('konsole', id)} onClick={ON_CLICK[id]}>{ICON[id]}</Btn>
+      ))}
 
     </Box>
   );

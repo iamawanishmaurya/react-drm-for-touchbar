@@ -4,7 +4,7 @@
 //   node preview-capture.mjs out1.png [x,y out2.png ...]
 //   For each "x,y out2.png" pair the script taps (touchstart+touchend) at
 //   x,y on the bar, waits for the layer transition, then saves a frame.
-import WebSocket from '/home/Astra/opencode/react-drm/node_modules/ws/index.js';
+import WebSocket from 'ws'; // resolved from the repo's node_modules
 import fs from 'fs';
 import zlib from 'zlib';
 
@@ -57,16 +57,26 @@ const waitStable = (ms = 600) =>
   new Promise(r => { lastAt = 0; setTimeout(() => { const f = frame; frame = null; r(f); }, ms); });
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 const tap = (x, y) => {
-  const m = t => ws.send(JSON.stringify({ type: t, x, y }));
+  const m = t => { if (!failed && ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: t, x, y })); };
   m('touchstart'); setTimeout(() => m('touchend'), 80);
 };
+
+// The preview instance can restart underneath us (config change, idle
+// timeout) and drop the socket mid-capture. Treat that as a clean failure so
+// the caller can retry instead of crashing on an unhandled 'error' event.
+let failed = null;
+const fail = (reason) => {
+  if (!failed) { failed = reason; console.error(reason); process.exit(1); }
+};
+ws.on('error', (e) => fail(`websocket error: ${e.message}`));
+ws.on('close', () => fail('websocket closed before capture completed'));
 
 ws.on('open', async () => {
   try {
     await sleep(500);
     // wait until at least one frame arrived, then settle
     for (let i = 0; i < 20 && !frame; i++) await sleep(100);
-    if (!frame) { console.error('no frame received'); process.exit(1); }
+    if (!frame) fail('no frame received');
 
     let [file, ...rest] = args;
     fs.writeFileSync(file, frameToPng(frame));
@@ -78,11 +88,11 @@ ws.on('open', async () => {
       tap(x, y);
       await sleep(1400); // layer transition
       const f = await waitStable();
-      if (!f) { console.error('no frame for', out); process.exit(1); }
+      if (!f) fail('no frame for ' + out);
       fs.writeFileSync(out, frameToPng(f));
       console.log('saved', out, 'after tap at', xy);
     }
     process.exit(0);
-  } catch (e) { console.error(e); process.exit(1); }
+  } catch (e) { fail(String(e?.message ?? e)); }
 });
-setTimeout(() => { console.error('timeout'); process.exit(1); }, 30000);
+setTimeout(() => fail('timeout'), 30000);

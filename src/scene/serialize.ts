@@ -236,11 +236,11 @@ export function parseColor(color: string): [number, number, number, number] {
   return cached;
 }
 
-function zIndexOf(node: SceneNode): number {
+export function zIndexOf(node: SceneNode): number {
   return node.style?.zIndex ?? 0;
 }
 
-function resolveCornerRadii(s: import('./style').Style | undefined): [number, number, number, number] {
+export function resolveCornerRadii(s: import('./style').Style | undefined): [number, number, number, number] {
   const base = s?.borderRadius ?? 0;
   return [
     s?.borderTopLeftRadius     ?? base,
@@ -252,7 +252,7 @@ function resolveCornerRadii(s: import('./style').Style | undefined): [number, nu
 
 /** Same edge resolution yoga uses for layout (layout-yoga.ts applyCommonStyle) — kept in
  *  sync so the paint-time clip rect matches the content box yoga actually laid children into. */
-function resolvePadding(s: import('./style').Style | undefined): [number, number, number, number] {
+export function resolvePadding(s: import('./style').Style | undefined): [number, number, number, number] {
   return [
     s?.paddingTop    ?? s?.paddingVertical   ?? s?.padding ?? 0,
     s?.paddingRight  ?? s?.paddingHorizontal ?? s?.padding ?? 0,

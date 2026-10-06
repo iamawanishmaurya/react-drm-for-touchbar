@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { allowAction } from '@/lib/services/sandboxActions';
 import dbus, { MessageBus, Variant } from 'dbus-next';
 import { useActiveWindow } from './useActiveWindow';
 
@@ -183,6 +184,7 @@ export function useVlc() {
 
   /** Toggle play/pause on the focused instance (MPRIS Player.PlayPause). */
   const playPause = useCallback(() => {
+    if (!allowAction('VLC: play/pause')) return;
     const bus = busRef.current, svc = targetRef.current;
     if (!bus || !svc) return;
     bus.call(new dbus.Message({
@@ -192,6 +194,7 @@ export function useVlc() {
 
   /** Seek to an absolute position (µs) via MPRIS Player.SetPosition(trackId, x). */
   const seek = useCallback((positionUs: number) => {
+    if (!allowAction(`VLC: seek to ${Math.round(positionUs / 1e6)}s`)) return;
     const bus = busRef.current, svc = targetRef.current, tid = trackIdRef.current;
     if (!bus || !svc || !tid) return;
     const targetUs = Math.max(0, Math.round(positionUs));

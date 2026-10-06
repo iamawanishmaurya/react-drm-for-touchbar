@@ -1,5 +1,6 @@
 import fs from 'fs';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { allowAction } from '@/lib/services/sandboxActions';
 import dbus, { MessageBus } from 'dbus-next';
 import { DOLPHIN } from '@/lib/utils/configLoader';
 import { useActiveWindow } from './useActiveWindow';
@@ -160,12 +161,14 @@ export function useDolphin() {
 
   /** Trigger any dolphin action by name on the focused window (no-op on disabled actions). */
   const trigger = useCallback((action: string) => {
+    if (!allowAction(`Dolphin: ${action}`)) return;
     const t = targetRef.current;
     if (t) call(t.svc, `${t.win}/actions/${action}`, 'org.qtproject.Qt.QAction', 'trigger').catch(() => {});
   }, [call]);
 
   /** Open a directory in a new tab — Dolphin's D-Bus offers no way to navigate the current view. */
   const openDir = useCallback((path: string) => {
+    if (!allowAction(`Dolphin: open ${path}`)) return;
     const t = targetRef.current;
     if (t) call(t.svc, t.win, 'org.kde.dolphin.MainWindow', 'openDirectories', 'asb', [[`file://${path}`], false]).catch(() => {});
   }, [call]);

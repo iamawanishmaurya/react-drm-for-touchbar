@@ -2,6 +2,7 @@ import net from 'net';
 import fs from 'fs';
 import type { ActiveWindow, ActiveWindowBackend } from './types';
 import { EMPTY } from './types';
+import { sessionRuntimeDir } from '@/lib/utils/sessionRuntime';
 
 interface NiriWindow {
   id:         number;
@@ -19,7 +20,7 @@ export function findNiriSocket(): string | null {
   const sock = process.env.NIRI_SOCKET;
   if (sock) { try { fs.accessSync(sock); return sock; } catch { /**/ } }
 
-  const runtime = process.env.XDG_RUNTIME_DIR ?? '/run/user/1000';
+  const runtime = sessionRuntimeDir();
   try {
     const match = fs.readdirSync(runtime).find(f => /^niri\..*\.sock$/.test(f));
     if (match) return `${runtime}/${match}`;

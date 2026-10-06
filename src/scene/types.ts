@@ -4,6 +4,13 @@ export type Color = string;
 
 export interface BoxNode {
   type: 'box';
+  /**
+   * Optional stable identity, React Native's `nativeID` analogue. Carries
+   * through to the SVG serializer as `data-id`, which is what lets an external
+   * tool (the designer) address real buttons instead of guessing rectangles
+   * out of pixels. Inert for the Touch Bar itself — nothing renders it.
+   */
+  id?: string;
   x?: number;
   y?: number;
   width?: number;

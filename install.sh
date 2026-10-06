@@ -48,6 +48,7 @@ DESKTOP_ABORT_REASON=""
 NIXOS_DETECTED=0
 UBUNTU_BASED=0
 NEEDS_RELOGIN=0
+WITH_RECOVERY=0
 DEPLOYMENT_MODE="new installation"
 
 NEEDED_BUILD_PACKAGES=()
@@ -176,6 +177,11 @@ The installation has three phases:
      source, install or update its udev rules and systemd user service, and add
      your user to the video and input groups if required. If group memberships
      change, you must log out and back in after installation.
+     Also installs touchbar-control, the live Touch Bar editor: a local website
+     at http://127.0.0.1:3100 (user service, local-only) with a "Touch Bar
+     Control" launcher, and the "Touch Bar Config" editor.
+     With --with-recovery, also installs root services that re-initialize the
+     Touch Bar display after suspend/resume and when its panel freezes.
 
 The package manager refreshes repository metadata before installing packages.
 On Arch-based systems, pacman performs a full system upgrade because partial
@@ -574,6 +580,8 @@ print_analysis() {
   analysis_value "Packages to purge" "${ANALYSIS_CONFLICTING_PACKAGES[*]:-none}"
   analysis_value "Units to disable" "${ANALYSIS_CONFLICTING_UNITS[*]:-none}"
   analysis_value "Conflicting processes" "${#ANALYSIS_CONFLICTING_PROCESSES[@]}"
+  analysis_value "Touch Bar editor" "touchbar-control user service, http://127.0.0.1:3100"
+  analysis_value "Recovery services" "$([[ $WITH_RECOVERY -eq 1 ]] && printf 'install (root: react-drm-recover, touchbar-recover, touchbar-watchdog)' || printf 'not installed (add with --with-recovery)')"
 
   [[ $NEEDS_RELOGIN -eq 0 ]] || warn "A logout and login will be required before react-drm can start"
   if [[ ${#ANALYSIS_CONFLICTING_PROCESSES[@]} -gt 0 ]]; then
@@ -751,6 +759,67 @@ build_project() {
   info "Building the config editor"
   (cd "$REPO_ROOT/config-gui" && npm run build)
   verify_electron_binary
+  build_touchbar_control
+}
+
+# touchbar-control is its own npm project (React 19 + Vite), kept out of the
+# root workspaces so its dependencies can't collide with the control center's.
+build_touchbar_control() {
+  info "Installing touchbar-control dependencies"
+  (cd "$REPO_ROOT/touchbar-control" && npm ci)
+  info "Building touchbar-control"
+  (cd "$REPO_ROOT/touchbar-control" && npm run build)
+}
+
+install_touchbar_control_service() {
+  local service_dir service_file temporary_file workdir_q start_q repo_q
+  service_dir="$HOME/.config/systemd/user"
+  service_file="$service_dir/touchbar-control.service"
+  workdir_q=$(systemd_escape_path "$REPO_ROOT/touchbar-control")
+  start_q=$(systemd_escape_path "$REPO_ROOT/touchbar-control/node_modules/.bin/tsx")
+  repo_q=$(systemd_escape_path "$REPO_ROOT")
+
+  info "Installing touchbar-control user service"
+  install -d -m 0755 "$service_dir"
+  temporary_file=$(mktemp --suffix=.service "$service_dir/touchbar-control-install.XXXXXX")
+  if ! awk -v workdir="$workdir_q" -v start="$start_q" -v repo="$repo_q" '
+    /^WorkingDirectory=/ { print "WorkingDirectory=" workdir; next }
+    /^Environment=REACT_DRM_DIR=/ { print "Environment=REACT_DRM_DIR=" repo; next }
+    /^ExecStart=/ { print "ExecStart=" start " server/index.ts"; next }
+    { print }
+  ' "$REPO_ROOT/system/touchbar-control.service" >"$temporary_file"; then
+    rm -f "$temporary_file"
+    fail "unable to generate the touchbar-control user service"
+  fi
+  chmod 0644 "$temporary_file"
+  if ! systemd-analyze --user verify "$temporary_file"; then
+    rm -f "$temporary_file"
+    fail "the generated touchbar-control user service is invalid"
+  fi
+  mv -f "$temporary_file" "$service_file"
+  systemctl --user daemon-reload
+  if [[ $NEEDS_RELOGIN -eq 1 ]]; then
+    systemctl --user enable touchbar-control.service
+  else
+    systemctl --user enable touchbar-control.service
+    systemctl --user restart touchbar-control.service
+    info "touchbar-control is running at http://127.0.0.1:3100"
+  fi
+}
+
+install_touchbar_control_launcher() {
+  info "Installing touchbar-control launcher"
+  install -Dm0644 "$REPO_ROOT/system/touchbar-control.desktop" \
+    "$HOME/.local/share/applications/touchbar-control.desktop"
+}
+
+# Opt-in (./install.sh install --with-recovery): root services that re-run
+# react-drm-recover after suspend/resume and when the kernel reports a frozen
+# panel. Not needed on most machines — the app already re-attaches the Touch
+# Bar on resume — but they fix the stale-panel cases in TROUBLESHOOTING.md.
+install_recovery_hooks() {
+  info "Installing Touch Bar recovery services"
+  privileged "$REPO_ROOT/packaging/install-recovery.sh"
 }
 
 # electron's own postinstall script downloads the platform binary as part of
@@ -917,7 +986,11 @@ phase_deploy() {
   install_udev_rules
   install_user_service
   install_config_gui_launcher
+  install_touchbar_control_service
+  install_touchbar_control_launcher
+  [[ $WITH_RECOVERY -eq 1 ]] && install_recovery_hooks
   info "Deployment completed successfully"
+  info "Touch Bar editor: http://127.0.0.1:3100 (\"Touch Bar Control\" in your applications)"
   if [[ $NEEDS_RELOGIN -eq 1 ]]; then
     warn "Log out of the desktop session and log back in to activate the video and input group memberships"
     warn "react-drm will start automatically after the next login"
@@ -933,12 +1006,18 @@ phase_deploy() {
 main() {
   case "${1:-install}" in
     install)
-      [[ "${2:-}" == --gui ]] && GUI_MODE=1
+      for arg in "${@:2}"; do
+        case "$arg" in
+          --gui) GUI_MODE=1 ;;
+          --with-recovery) WITH_RECOVERY=1 ;;
+          *) printf 'unknown option: %s\n' "$arg" >&2; return 2 ;;
+        esac
+      done
       confirm_installation; analyze; confirm_purge; phase_purge; phase_deploy ;;
     analyze) analyze ;;
     purge) confirm_installation; analyze; confirm_purge; phase_purge ;;
     wizard) phase_gui_bootstrap ;;
-    *) printf 'usage: %s [install|analyze|purge|wizard]\n' "${0##*/}" >&2; return 2 ;;
+    *) printf 'usage: %s [install [--with-recovery]|analyze|purge|wizard]\n' "${0##*/}" >&2; return 2 ;;
   esac
 }
 

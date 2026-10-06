@@ -1,0 +1,12 @@
+# Opens touchbar-control (served by touchbar-control.service) in the default
+# browser. Installed by install.sh to ~/.local/share/applications/.
+[Desktop Entry]
+Type=Application
+Name=Touch Bar Control
+GenericName=Touch Bar editor
+Comment=See your Touch Bar live, preview it per app, and rearrange its buttons
+Exec=xdg-open http://127.0.0.1:3100
+Icon=preferences-desktop-peripherals
+Terminal=false
+Categories=Settings;HardwareSettings;
+Keywords=touchbar;touch bar;react-drm;layout;

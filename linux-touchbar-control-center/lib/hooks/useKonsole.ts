@@ -2,6 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { execFile } from 'child_process';
 import { useState, useEffect, useRef, useCallback } from 'react';
+import { allowAction } from '@/lib/services/sandboxActions';
 import { keys } from '@/lib/services/keyInjector';
 import { KEY } from 'react-drm';
 import dbus, { MessageBus, ClientInterface } from 'dbus-next';
@@ -791,18 +792,22 @@ export function useKonsole() {
   }, []);
 
   const newTab = useCallback(async () => {
+    if (!allowAction('Konsole: new tab')) return;
     if (!(await activateWindowAction('new-tab'))) await windowRef.current?.newSession('', '');
   }, [activateWindowAction]);
 
   const nextTab = useCallback(async () => {
+    if (!allowAction('Konsole: next tab')) return;
     if (!(await activateWindowAction('next-tab'))) await windowRef.current?.nextSession();
   }, [activateWindowAction]);
 
   const prevTab = useCallback(async () => {
+    if (!allowAction('Konsole: previous tab')) return;
     if (!(await activateWindowAction('previous-tab'))) await windowRef.current?.prevSession();
   }, [activateWindowAction]);
 
   const closeTab = useCallback(() => {
+    if (!allowAction('Konsole: close tab')) return;
     keys.pressCombo([KEY.LEFTCTRL, KEY.LEFTSHIFT, KEY.KEY_W]);
   }, []);
 
@@ -810,6 +815,7 @@ export function useKonsole() {
   // History suggestions run immediately; completion suggestions only fill the line
   // (padded so the next poll offers completions for the following token).
   const sendSuggestion = useCallback(async (s: Suggestion) => {
+    if (!allowAction(`Konsole: run ${s.cmd}`)) return;
     const svc = serviceRef.current;
     const id  = activeIdRef.current;
     if (!svc || id === null) return;

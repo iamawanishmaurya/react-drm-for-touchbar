@@ -1,5 +1,6 @@
 import net from 'node:net';
 import fs from 'node:fs';
+import path from 'node:path';
 import {
   customLayerSocketPath, encodeMessage, createMessageReader, createLogger,
 } from 'react-drm';
@@ -70,7 +71,20 @@ export function startCustomLayerBridge(): CustomLayerBridgeHandle {
   });
 
   server.on('error', e => log.error('custom-layer bridge error:', e instanceof Error ? e.message : e));
-  server.listen(socketPath, () => log.info(`custom-layer bridge listening at ${socketPath}`));
+  server.listen(socketPath, () => {
+    // When the bar runs as root (the system unit), hand the socket to the
+    // desktop user who owns the runtime dir — otherwise config-gui, running as
+    // that user, can't connect (root-owned 0755 sockets refuse other users).
+    try {
+      if (process.getuid?.() === 0) {
+        const { uid, gid } = fs.statSync(path.dirname(socketPath));
+        if (uid !== 0) { fs.chownSync(socketPath, uid, gid); fs.chmodSync(socketPath, 0o600); }
+      }
+    } catch (e) {
+      log.warn('could not hand the custom-layer socket to the desktop user:', e instanceof Error ? e.message : e);
+    }
+    log.info(`custom-layer bridge listening at ${socketPath}`);
+  });
 
   return {
     stop() {

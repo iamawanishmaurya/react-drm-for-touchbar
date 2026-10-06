@@ -17,7 +17,11 @@ import { audioTrackAnchorAtom, ANCHOR_TRACK_W } from '@/store/audioTrackAnchor';
 import type { LayerConfig, LayoutChildren } from '@/lib/routes/loadRoutes';
 import { DEFAULT_CHILD_NAME } from '@/lib/routes/loadRoutes';
 import { go, routerAt } from '@/lib/routes/router-registry';
-import { BAR_LAYOUT, CUSTOM_LAYER } from '@/lib/utils/configLoader';
+import { CUSTOM_LAYER } from '@/lib/utils/configLoader';
+import { useLayout } from '@/lib/utils/layoutStore';
+import { resolveOrder, type BarLayout } from '@/lib/utils/layoutModel';
+import { isLeftPanel } from '@/lib/utils/layoutSchema';
+import { leftPanelForClass } from '@/lib/utils/leftPanelRouting';
 import { SELECTED_THEME } from '@/lib/theme';
 import { keys } from '@/lib/services/keyInjector';
 import path, { relative } from 'path';
@@ -33,33 +37,24 @@ export const layerConfig: LayerConfig = {
 
 type SplittedLeftLayerName = typeof DEFAULT_CHILD_NAME | 'browser' | 'konsole' | 'vlc' | 'dolphin' | 'vscode' | 'gwenview' | 'mediaMprisList';
 
-const BROWSER_CLASSES = [
-  'firefox', 'firefox-esr',
-  'google-chrome', 'google-chrome-stable', 'google-chrome-beta',
-  'chromium', 'chromium-browser',
-  'brave-browser', 'brave',
-  'microsoft-edge', 'microsoft-edge-stable',
-  'opera', 'opera-stable',
-  'vivaldi-stable', 'vivaldi',
-  'thorium-browser',
-  'waterfox', 'librewolf', 'floorp',
-];
-
-// Matches VS Code's own DOCK.apps entry (config.ts) — 'code' covers both the
-// stable and Insiders Linux packages, 'code-oss' the distro-packaged open
-// source build.
-const CODE_CLASSES = ['code', 'code-oss', 'codium', 'vscodium'];
-
+// Which left panel a focused window gets: lib/utils/leftPanelRouting.ts (pure,
+// shared with the sandbox's app-preview list).
 function resolveLeftSideLayerByClass(activeClass: string): SplittedLeftLayerName {
-  const cls = activeClass.toLowerCase();
-  if (cls && BROWSER_CLASSES.some(b => cls.includes(b))) return 'browser';
-  if (cls.includes('konsole')) return 'konsole';
-  if (cls.includes('vlc')) return 'vlc';
-  if (cls.includes('dolphin')) return 'dolphin';
-  if (cls.includes('gwenview')) return 'gwenview';
-  if (cls && CODE_CLASSES.some(c => cls.includes(c))) return 'vscode';
-  return DEFAULT_CHILD_NAME;
+  return leftPanelForClass(activeClass);
 }
+
+// Camera button: the first screenshot UI available — niri's built-in one,
+// then KDE Spectacle, GNOME Screenshot, then grim + slurp (wlroots/Hyprland).
+const SCREENSHOT_CMD = [
+  'sock=$(ls "$XDG_RUNTIME_DIR"/niri.*.sock 2>/dev/null | head -1)',
+  'if [ -n "$sock" ] && command -v niri >/dev/null; then NIRI_SOCKET="$sock" exec niri msg action screenshot; fi',
+  'if command -v spectacle >/dev/null; then exec spectacle -r; fi',
+  'if command -v gnome-screenshot >/dev/null; then exec gnome-screenshot -i; fi',
+  'if command -v grim >/dev/null && command -v slurp >/dev/null; then',
+  '  mkdir -p "$HOME/Pictures/Screenshots"',
+  '  exec grim -g "$(slurp)" "$HOME/Pictures/Screenshots/screenshot-$(date +%Y%m%d-%H%M%S).png"',
+  'fi',
+].join('\n');
 
 // ── Media control ─────────────────────────────────────────────────────────────
 
@@ -147,6 +142,9 @@ function Separator() {
 function ClusterBtn({ btn, leftRound, rightRound , width }: {width?:number; btn: RightBtn; leftRound?: boolean; rightRound?: boolean }) {
   return (
     <Button
+      // The button's BAR_LAYOUT id. Inert on the panel; sceneToSvg() emits it
+      // as data-id so external tools can address this exact widget.
+      id={btn.key}
       width={width}
       color={btn.color}
       activeColor={btn.activeColor}
@@ -209,23 +207,16 @@ function EqualizerIcon({ playing }: { playing: boolean }) {
 
 // ── Config-driven order (BAR_LAYOUT) ─────────────────────────────────────────
 
-/** Resolves the right-hand cluster order from config BAR_LAYOUT.rightButtons:
- *  ids are matched against BASE_BTNS keys (unknown ids dropped) and any id
- *  missing from the config list is appended in its built-in position, so a
- *  partial config never loses buttons. Empty/missing list → built-in order.
- *  (REL-03: old configs without BAR_LAYOUT keep working unchanged.) */
-function resolveRightButtons(): RightBtn[] {
+/** Resolves the right-hand cluster order from the live layout (seeded from
+ *  config BAR_LAYOUT.rightButtons; see layoutStore.ts): ids are matched against
+ *  BASE_BTNS keys (unknown ids dropped) and any id missing from the list is
+ *  appended in its built-in position, so a partial config never loses buttons.
+ *  Empty/missing list → built-in order (REL-03: old configs without BAR_LAYOUT
+ *  keep working unchanged). Keys listed in BAR_LAYOUT.hidden are left out. */
+function resolveRightButtons(layout: BarLayout): Omit<RightBtn, 'onClick'>[] {
   const byKey = new Map(BASE_BTNS.map(b => [b.key, b]));
-  const configured = (BAR_LAYOUT as { rightButtons?: string[] } | undefined)?.rightButtons;
-  if (!Array.isArray(configured) || configured.length === 0) return BASE_BTNS.map(b => ({ ...b }));
-  const resolved: RightBtn[] = [];
-  const seen = new Set<string>();
-  for (const key of configured) {
-    const base = byKey.get(key);
-    if (base && !seen.has(key)) { resolved.push({ ...base }); seen.add(key); }
-  }
-  for (const b of BASE_BTNS) if (!seen.has(b.key)) resolved.push({ ...b });
-  return resolved;
+  return resolveOrder(layout.rightButtons, BASE_BTNS.map(b => b.key), new Set(layout.hidden))
+    .map(key => ({ ...byKey.get(key)! }));
 }
 
 // ── Component ─────────────────────────────────────────────────────────────────
@@ -237,6 +228,7 @@ export default function SplittedLayout({ width, height, children, path }: {
   path:     string;         // 'splitted' — for addressing its own children
 }) {
   const { class: activeClass } = useActiveWindow();
+  const layout = useLayout();
   const { show: showMedia, loading: mediaLoading, players } = useMediaPlayers();
   const [isMediaMprisListPinned, setIsMediaMprisListPinned] = useAtom(mediaMprisListPinnedAtom);
   const mediaPlaying = useMemo(() => players.some(p => p.state.status === 'Playing'), [players]);
@@ -262,11 +254,13 @@ export default function SplittedLayout({ width, height, children, path }: {
       volume:     () => { setAudioTrackAnchor(null); go('audio-slider', 'fade'); },
       brightness: () => go('brightness-slider', 'fade'),
       playpause:  () => go('dock', 'slide-up'),
-      screenshot: () => launch('sh', ['-c', 'export NIRI_SOCKET=$(ls /run/user/1000/niri.*.sock 2>/dev/null | head -1); exec niri msg action screenshot']),
+      // Interactive screenshot with whatever the desktop provides (launch()
+      // runs it inside the user's session, with its XDG_RUNTIME_DIR).
+      screenshot: () => launch('sh', ['-c', SCREENSHOT_CMD]),
       snake:      () => go('games', 'slide-left'), // gamepad opens the games menu (Snake/Dino/Piano/Pong)
     };
     // Config-driven order (BAR_LAYOUT): resolve ids → BASE_BTNS entries, wire actions.
-    const base: RightBtn[] = resolveRightButtons().map(b => ({ ...b, onClick: actions[b.key] ?? (() => {}) }));
+    const base: RightBtn[] = resolveRightButtons(layout).map(b => ({ ...b, onClick: actions[b.key] ?? (() => {}) }));
     const volumeBtn = base.find(b => b.key === 'volume');
     if (volumeBtn) {
       // Enters the anchored live-drag: reads the current volume, anchors the
@@ -374,7 +368,7 @@ export default function SplittedLayout({ width, height, children, path }: {
     }
 
     return base;
-  }, [ showMedia, isMediaMprisListPinned, activeClass, mediaPlaying]);
+  }, [ showMedia, isMediaMprisListPinned, activeClass, mediaPlaying, layout]);
 
   // Right panel width depends on the visible buttons + 3px gaps. When the media
   // tools are expanded it springs out to fill whatever the left panel leaves.
@@ -385,10 +379,14 @@ export default function SplittedLayout({ width, height, children, path }: {
 
   const leftTargetRef = useRef<SplittedLeftLayerName | null>(null);
   useEffect(() => {
-    // Pinned → stay on the list; otherwise resolve from the active window.
-    const target = isMediaMprisListPinned
-      ? 'mediaMprisList'
-      : resolveLeftSideLayerByClass(activeClass);
+    // A sandbox editor can pin a panel (so it can arrange e.g. the vscode
+    // buttons while a browser has focus); otherwise the media list when pinned,
+    // otherwise resolve from the active window. Never set on the real bar.
+    const target: SplittedLeftLayerName = isLeftPanel(layout.pinnedLeft)
+      ? layout.pinnedLeft
+      : isMediaMprisListPinned
+        ? 'mediaMprisList'
+        : resolveLeftSideLayerByClass(activeClass);
 
     // When the media panel finished animating back (isAnimating → false) the
     // routed left host may have swapped layers behind `children(leftW, height)`
@@ -413,7 +411,7 @@ export default function SplittedLayout({ width, height, children, path }: {
     // (e.g. this very first run, before splitted's own nested host has
     // registered itself) — no need to wait for it here ourselves.
     go(`${path}/${target}`, 'fade');
-  }, [activeClass, isMediaMprisListPinned, path, isAnimating]);
+  }, [activeClass, isMediaMprisListPinned, path, isAnimating, layout.pinnedLeft]);
 
   useEffect(() => {
     if (mediaLoading) return;

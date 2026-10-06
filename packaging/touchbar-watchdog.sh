@@ -6,7 +6,7 @@
 # TROUBLESHOOTING.md issue 10). When that happens the kernel logs
 #   appletbdrm 5-6:2.1: [drm] *ERROR* Failed to send message (-110)
 # repeatedly. This watchdog tails the kernel log for that signature and, on a
-# hit, runs the sanctioned fix: `mtmr --recover` + restart react-drm.
+# hit, runs the fix: react-drm-recover (rebind appletbdrm + restart react-drm).
 #
 # Debounced: at most one recovery per RECOVER_COOLDOWN seconds, so a wedged
 # iBridge doesn't get hammered. Runs as a root systemd service.
@@ -35,10 +35,9 @@ while true; do
         [ -f "$STAMP" ] && last=$(cat "$STAMP" 2>/dev/null || echo 0)
         if (( now - last >= RECOVER_COOLDOWN )); then
             echo "$now" > "$STAMP"
-            log "stale-panel signature detected — running mtmr --recover + restarting react-drm"
-            /usr/bin/mtmr --recover >>/var/log/touchbar-watchdog-recover.log 2>&1
-            systemctl restart react-drm
-            log "recovery done"
+            log "stale-panel signature detected — running react-drm-recover"
+            "${RECOVER:-/usr/local/sbin/react-drm-recover}" >>/var/log/touchbar-watchdog-recover.log 2>&1
+            log "recovery done (exit $?)"
         fi
     fi
     sleep "${POLL_INTERVAL:-30}"

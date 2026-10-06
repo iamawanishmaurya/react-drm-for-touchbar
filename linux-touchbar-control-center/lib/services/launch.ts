@@ -1,8 +1,10 @@
 import { spawn } from 'child_process';
-import { readdirSync, readFileSync, statSync } from 'fs';
+import { readdirSync, readFileSync } from 'fs';
 import path from 'path';
 import type { DockApp } from '@/lib/utils/configLoader';
 import { createLogger } from 'react-drm';
+import { findUserRuntimeDir } from '@/lib/utils/sessionRuntime';
+import { allowAction } from './sandboxActions';
 
 const log = createLogger('dock');
 
@@ -16,6 +18,7 @@ const log = createLogger('dock');
  * can reach the compositor. Run directly otherwise.
  */
 export function launch(command: string, args: string[] = []): void {
+  if (!allowAction(`launch ${[command, ...args].join(' ')}`)) return;
   const uid      = typeof process.getuid === 'function' ? process.getuid() : 1000;
   const sudoUser = process.env.SUDO_USER;
   const sudoUid  = process.env.SUDO_UID;
@@ -61,19 +64,6 @@ export function launch(command: string, args: string[] = []): void {
 
   child.on('error', err => log.error('launch failed:', command, err.message));
   child.unref();
-}
-
-/** The desktop session's runtime dir: the first /run/user/<n> owned by a real
- *  user (not root). Returns null when no graphical session exists. */
-function findUserRuntimeDir(): string | null {
-  try {
-    for (const f of readdirSync('/run/user')) {
-      if (!/^\d+$/.test(f) || f === '0') continue;
-      const full = `/run/user/${f}`;
-      if (statSync(full).uid > 0) return full;
-    }
-  } catch { /* fall through */ }
-  return null;
 }
 
 /** Same as {@link launch}, shaped for the dock's config-driven app entries. */

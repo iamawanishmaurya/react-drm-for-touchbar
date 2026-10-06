@@ -1,4 +1,5 @@
 import { useEffect, useRef, useCallback } from 'react';
+import { allowAction } from '@/lib/services/sandboxActions';
 import dbus, { MessageBus } from 'dbus-next';
 import { useActiveWindow } from './useActiveWindow';
 
@@ -70,6 +71,7 @@ export function useGwenview() {
   }, [activePid]);
 
   const trigger = useCallback((action: string) => {
+    if (!allowAction(`Gwenview: ${action}`)) return;
     const bus = busRef.current, svc = targetRef.current;
     if (!bus || !svc) return;
     bus.call(new dbus.Message({

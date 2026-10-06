@@ -117,6 +117,8 @@ export function useButtonGesture({
 }
 
 export interface ButtonProps {
+  /** Stable identity — see BoxProps.id. Rendered as `data-id` by sceneToSvg(). */
+  id?: string;
   x?: number;
   y?: number;
   width?: number;
@@ -155,6 +157,7 @@ export function Button({
   borderColor,
   activeBorderColor,
   borderWidth,
+  id,
   opacity,
   activeOpacity,
   borderRadius,
@@ -186,6 +189,7 @@ export function Button({
   return (
     <Box
       ref={nodeRef}
+      id={id}
       x={x} y={y}
       width={width} height={height}
       color={active ? activeColor : color}

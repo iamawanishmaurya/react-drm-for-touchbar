@@ -2,6 +2,7 @@ import ReactReconciler from 'react-reconciler';
 import { DefaultEventPriority } from 'react-reconciler/constants';
 import type { RootContainer, SceneNode, BoxNode, TextNode, TextLeafNode, AnyNode, SvgNode, GifNode, SvgContainerNode, SvgElementNode } from '../scene/types';
 import type { Style } from '../scene/style';
+import { appendMoving, insertMovingBefore } from './child-order';
 
 // JSX camelCase prop names → SVG XML attribute names
 const JSX_TO_SVG_ATTR: Record<string, string> = {
@@ -109,6 +110,9 @@ function nodeFromProps(type: string, props: Record<string, unknown>, inSvg = fal
   if (type === 'box') {
     return {
       type: 'box',
+      // `id` is the nativeID-style handle external tools use to address a
+      // node (see BoxNode.id). Never rendered, only serialized.
+      id: (props.id as string) ?? (props['data-id'] as string) ?? undefined,
       x: props.x as number | undefined,
       y: props.y as number | undefined,
       width: props.width as number | undefined,
@@ -221,16 +225,16 @@ export const reconciler = ReactReconciler({
     }
     if (parent.type === 'svg') {
       (child as SvgElementNode)._parent = parent;
-      (parent as SvgContainerNode).svgChildren.push(child as SvgElementNode);
+      appendMoving((parent as SvgContainerNode).svgChildren, child as SvgElementNode);
       (parent as SvgContainerNode)._cachedSrc = undefined;
       return;
     }
     if (parent.type === 'svg_el') {
       (child as SvgElementNode)._parent = parent;
-      (parent as SvgElementNode).children.push(child as SvgElementNode);
+      appendMoving((parent as SvgElementNode).children, child as SvgElementNode);
       return;
     }
-    (parent as SceneNode).children.push(child as SceneNode);
+    appendMoving((parent as SceneNode).children, child as SceneNode);
   },
 
   finalizeInitialChildren: () => false,
@@ -251,12 +255,11 @@ export const reconciler = ReactReconciler({
 
   // Container mutations
   appendChildToContainer: (container: RootContainer, child: AnyNode) => {
-    if (child.type !== 'text-leaf' && child.type !== 'svg_el') container.children.push(child as SceneNode);
+    if (child.type !== 'text-leaf' && child.type !== 'svg_el') appendMoving(container.children, child as SceneNode);
   },
   insertInContainerBefore: (container: RootContainer, child: AnyNode, before: AnyNode) => {
     if (child.type === 'text-leaf' || child.type === 'svg_el') return;
-    const idx = container.children.indexOf(before as SceneNode);
-    container.children.splice(idx === -1 ? 0 : idx, 0, child as SceneNode);
+    insertMovingBefore(container.children, child as SceneNode, before as SceneNode);
   },
   removeChildFromContainer: (container: RootContainer, child: AnyNode) => {
     if (child.type === 'svg_el') return;
@@ -269,37 +272,31 @@ export const reconciler = ReactReconciler({
     if (parent.type === 'text-leaf' || child.type === 'text-leaf') return;
     if (parent.type === 'svg') {
       (child as SvgElementNode)._parent = parent;
-      (parent as SvgContainerNode).svgChildren.push(child as SvgElementNode);
+      appendMoving((parent as SvgContainerNode).svgChildren, child as SvgElementNode);
       (parent as SvgContainerNode)._cachedSrc = undefined;
       return;
     }
     if (parent.type === 'svg_el') {
       (child as SvgElementNode)._parent = parent;
-      (parent as SvgElementNode).children.push(child as SvgElementNode);
+      appendMoving((parent as SvgElementNode).children, child as SvgElementNode);
       return;
     }
-    (parent as SceneNode).children.push(child as SceneNode);
+    appendMoving((parent as SceneNode).children, child as SceneNode);
   },
   insertBefore: (parent: AnyNode, child: AnyNode, before: AnyNode) => {
     if (parent.type === 'text-leaf' || child.type === 'text-leaf') return;
     if (parent.type === 'svg') {
       (child as SvgElementNode)._parent = parent;
-      const arr = (parent as SvgContainerNode).svgChildren;
-      const idx = arr.indexOf(before as SvgElementNode);
-      arr.splice(idx === -1 ? 0 : idx, 0, child as SvgElementNode);
+      insertMovingBefore((parent as SvgContainerNode).svgChildren, child as SvgElementNode, before as SvgElementNode);
       (parent as SvgContainerNode)._cachedSrc = undefined;
       return;
     }
     if (parent.type === 'svg_el') {
       (child as SvgElementNode)._parent = parent;
-      const arr = (parent as SvgElementNode).children;
-      const idx = arr.indexOf(before as SvgElementNode);
-      arr.splice(idx === -1 ? 0 : idx, 0, child as SvgElementNode);
+      insertMovingBefore((parent as SvgElementNode).children, child as SvgElementNode, before as SvgElementNode);
       return;
     }
-    const arr = (parent as SceneNode).children;
-    const idx = arr.indexOf(before as SceneNode);
-    arr.splice(idx === -1 ? 0 : idx, 0, child as SceneNode);
+    insertMovingBefore((parent as SceneNode).children, child as SceneNode, before as SceneNode);
   },
   removeChild: (parent: AnyNode, child: AnyNode) => {
     if (parent.type === 'text-leaf') return;

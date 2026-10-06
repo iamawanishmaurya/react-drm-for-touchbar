@@ -1,10 +1,11 @@
 import { execFile, execFileSync } from 'child_process';
+import { sessionRuntimeDir } from '@/lib/utils/sessionRuntime';
 
 // When running as root the session socket isn't inherited — pass it explicitly.
 export const PW_ENV: NodeJS.ProcessEnv = {
   ...process.env,
-  XDG_RUNTIME_DIR: process.env.XDG_RUNTIME_DIR ?? '/run/user/1000',
-  PIPEWIRE_REMOTE: process.env.PIPEWIRE_REMOTE ?? '/run/user/1000/pipewire-0',
+  XDG_RUNTIME_DIR: sessionRuntimeDir(),
+  PIPEWIRE_REMOTE: process.env.PIPEWIRE_REMOTE ?? `${sessionRuntimeDir()}/pipewire-0`,
 };
 
 function hasWpctl(): boolean {

@@ -1,0 +1,26 @@
+# touchbar-control — the live Touch Bar editor website (http://127.0.0.1:3100),
+# as an unprivileged user service next to react-drm.service. Local only (binds
+# 127.0.0.1). Its sandbox bar starts only when the page is open and stops 3
+# minutes after the last tab closes, so idle cost is one small Node process.
+# The paths below assume the repo at ~/react-drm; install.sh rewrites them to
+# the actual repo path (same as react-drm.service).
+# Manual install:
+#   ( cd ~/react-drm/touchbar-control && npm ci && npm run build )
+#   install -Dm644 system/touchbar-control.service ~/.config/systemd/user/touchbar-control.service
+#   systemctl --user daemon-reload && systemctl --user enable --now touchbar-control
+[Unit]
+Description=touchbar-control — live Touch Bar editor (http://127.0.0.1:3100)
+After=graphical-session.target react-drm.service
+PartOf=graphical-session.target
+
+[Service]
+Environment=NODE_ENV=production
+# The react-drm install it previews, edits and applies to.
+Environment=REACT_DRM_DIR=%h/react-drm
+WorkingDirectory=%h/react-drm/touchbar-control
+ExecStart=%h/react-drm/touchbar-control/node_modules/.bin/tsx server/index.ts
+Restart=on-failure
+RestartSec=3
+
+[Install]
+WantedBy=graphical-session.target

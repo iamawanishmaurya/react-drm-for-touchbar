@@ -1,0 +1,60 @@
+#!/usr/bin/env bash
+# Re-initialize the Touch Bar display, then restart react-drm.
+#
+# Fixes a panel frozen on an old frame while the renderer is healthy, or a
+# panel that won't take a new mode after a crash/suspend (TROUBLESHOOTING.md
+# issues 5, 10, 15): unbind and rebind the appletbdrm driver, then restart the
+# react-drm service so the UI repaints onto the fresh display session.
+#
+# The display interface is found by its USB identity — Apple Touch Bar
+# (05ac:8302), interface class 0x10, which is what appletbdrm claims — so this
+# works whatever bus/port the machine puts it on and whether or not the driver
+# is currently bound.
+#
+# Run as root:   react-drm-recover               rebind + restart react-drm
+#                react-drm-recover --no-restart  rebind only
+set -u
+
+DRIVER=/sys/bus/usb/drivers/appletbdrm
+log() { logger -t react-drm-recover -- "$*" 2>/dev/null; printf 'react-drm-recover: %s\n' "$*"; }
+
+[[ $EUID -eq 0 ]] || { log "must run as root"; exit 1; }
+[[ -d $DRIVER ]] || { log "appletbdrm driver not loaded"; modprobe appletbdrm 2>/dev/null || exit 1; }
+
+interfaces=()
+for dev in /sys/bus/usb/devices/*; do
+  [[ $(cat "$dev/idVendor" 2>/dev/null) == 05ac && $(cat "$dev/idProduct" 2>/dev/null) == 8302 ]] || continue
+  for itf in "$dev":*; do
+    [[ $(cat "$itf/bInterfaceClass" 2>/dev/null) == 10 ]] && interfaces+=("${itf##*/}")
+  done
+done
+[[ ${#interfaces[@]} -gt 0 ]] || { log "no Touch Bar display interface found (is the Touch Bar enumerated?)"; exit 1; }
+
+for itf in "${interfaces[@]}"; do
+  [[ -e $DRIVER/$itf ]] && echo "$itf" >"$DRIVER/unbind" 2>/dev/null
+done
+sleep 1
+bound=0
+for itf in "${interfaces[@]}"; do
+  echo "$itf" >"$DRIVER/bind" 2>/dev/null && bound=1
+  [[ -e $DRIVER/$itf ]] && bound=1
+done
+[[ $bound -eq 1 ]] || { log "rebinding appletbdrm failed for ${interfaces[*]}"; exit 1; }
+log "rebound appletbdrm (${interfaces[*]})"
+
+[[ ${1:-} == --no-restart ]] && exit 0
+
+# After a rebind a static UI never re-flips frames: restart the renderer.
+# A system unit (some setups run it as root) or each logged-in user's unit
+# (what install.sh sets up).
+if systemctl cat react-drm.service >/dev/null 2>&1; then
+  systemctl restart react-drm.service && log "restarted react-drm (system unit)"
+else
+  for dir in /run/user/*; do
+    uid=${dir##*/}
+    [[ $uid =~ ^[0-9]+$ && $uid != 0 ]] || continue
+    user=$(id -nu "$uid" 2>/dev/null) || continue
+    systemctl --user -M "$user@" cat react-drm.service >/dev/null 2>&1 || continue
+    systemctl --user -M "$user@" restart react-drm.service && log "restarted react-drm for $user"
+  done
+fi

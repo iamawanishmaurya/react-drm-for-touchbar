@@ -10,6 +10,9 @@ import {
 } from 'react-icons/md';
 import { useDolphin } from '@/lib/hooks/useDolphin';
 import { SELECTED_THEME } from '@/lib/theme';
+import { useLayout } from '@/lib/utils/layoutStore';
+import { LEFT_BUILT_IN } from '@/lib/utils/layoutSchema';
+import { resolveLeftGroup, leftButtonId } from '../leftOrder';
 
 const ACCENT   = SELECTED_THEME.primary;
 const DIM      = SELECTED_THEME.textPrimary;
@@ -21,6 +24,7 @@ const CHIP_W = 140;
 
 export default function DolphinPanel({ width, height }: { width: number; height: number }) {
   const { connected, state, places, trigger, openDir } = useDolphin();
+  const layout = useLayout();
 
   const ICON_SZ = Math.round(height * 0.55);
 
@@ -35,9 +39,11 @@ export default function DolphinPanel({ width, height }: { width: number; height:
     );
   }
 
-  function Btn({ onClick, enabled = true, children  }: { onClick: () => void; enabled?: boolean; children: React.ReactNode }) {
+  function Btn({ onClick, enabled = true, children, id }: { onClick: () => void; enabled?: boolean; children: React.ReactNode; id: string }) {
     return (
       <Button
+        // Page-qualified identity (dolphin.back, …) for editors.
+        id={id}
         // width={BTN_W}
         
         color={SELECTED_THEME.surface}
@@ -50,6 +56,16 @@ export default function DolphinPanel({ width, height }: { width: number; height:
     );
   }
 
+  const BUTTONS: Record<string, { action: string; Icon: typeof MdHome; fill: string; enabled?: boolean }> = {
+    back:       { action: 'go_back',           Icon: MdArrowBack,       fill: state.canBack ? ACCENT : DISABLED, enabled: state.canBack },
+    forward:    { action: 'go_forward',        Icon: MdArrowForward,    fill: state.canForward ? ACCENT : DISABLED, enabled: state.canForward },
+    up:         { action: 'go_up',             Icon: MdArrowUpward,     fill: ACCENT },
+    home:       { action: 'go_home',           Icon: MdHome,            fill: ACCENT },
+    showHidden: { action: 'show_hidden_files', Icon: MdVisibility,      fill: state.hidden ? ACCENT : DIM },
+    newFolder:  { action: 'create_dir',        Icon: MdCreateNewFolder, fill: SELECTED_THEME.success },
+    trash:      { action: 'movetotrash',       Icon: MdDelete,          fill: DEL_CLR },
+  };
+
   function Sep() {
     return <Box style={{ width: 1, height: height - 16, backgroundColor: SELECTED_THEME.border, marginLeft: 2, marginRight: 2 }} />;
   }
@@ -57,47 +73,25 @@ export default function DolphinPanel({ width, height }: { width: number; height:
   return (
     <Box style={{ flex: 1, flexDirection: 'row', gap: 4 }}>
 
-      {/* Navigation — back/forward dim when there is no history */}
-      <Btn onClick={() => trigger('go_back')} enabled={state.canBack} >
-        <MdArrowBack style={{ width: ICON_SZ, height: ICON_SZ }} fill={state.canBack ? ACCENT : DISABLED} stroke="none" />
-      </Btn>
-      <Btn onClick={() => trigger('go_forward')} enabled={state.canForward}>
-        <MdArrowForward style={{ width: ICON_SZ, height: ICON_SZ }} fill={state.canForward ? ACCENT : DISABLED} stroke="none" />
-      </Btn>
-      <Btn onClick={() => trigger('go_up')}>
-        <MdArrowUpward style={{ width: ICON_SZ, height: ICON_SZ }} fill={ACCENT} stroke="none" />
-      </Btn>
-      <Btn onClick={() => trigger('go_home')}>
-        <MdHome style={{ width: ICON_SZ, height: ICON_SZ }} fill={ACCENT} stroke="none" />
-      </Btn>
-
-      <Sep />
-
-      {/* Toggles — lit when active in dolphin */}
-      <Btn onClick={() => trigger('show_hidden_files')}>
-        <MdVisibility style={{ width: ICON_SZ, height: ICON_SZ }} fill={state.hidden ? ACCENT : DIM} stroke="none" />
-      </Btn>
-      {/* <Btn onClick={() => trigger('split_view')}>
-        <MdVerticalSplit style={{ width: ICON_SZ, height: ICON_SZ }} fill={state.split ? ACCENT : DIM} stroke="none" />
-      </Btn>
-      <Btn onClick={() => trigger('show_preview')}>
-        <MdImage style={{ width: ICON_SZ, height: ICON_SZ }} fill={state.preview ? ACCENT : DIM} stroke="none" />
-      </Btn> */}
-
-      <Sep />
-
-      {/* File ops — trash acts on the current selection */}
-      <Btn onClick={() => trigger('create_dir')}>
-        <MdCreateNewFolder style={{ width: ICON_SZ, height: ICON_SZ }} fill={SELECTED_THEME.success} stroke="none" />
-      </Btn>
-      {/* <Btn onClick={() => trigger('open_terminal_here')}>
-        <MdTerminal style={{ width: ICON_SZ, height: ICON_SZ }} fill={DIM} stroke="none" />
-      </Btn> */}
-      <Btn onClick={() => trigger('movetotrash')}>
-        <MdDelete style={{ width: ICON_SZ, height: ICON_SZ }} fill={DEL_CLR} stroke="none" />
-      </Btn>
-
-      <Sep />
+      {/* Config-driven order per group (LEFT_LAYOUT.dolphin, live via useLayout).
+          Back/forward dim when there is no history; show-hidden lights when on. */}
+      {(['nav', 'view', 'files'] as const).map(group => {
+        const order = resolveLeftGroup(layout, 'dolphin', group, LEFT_BUILT_IN.dolphin[group]);
+        if (order.length === 0) return null;
+        return (
+          <React.Fragment key={group}>
+            {order.map(id => {
+              const b = BUTTONS[id];
+              return b ? (
+                <Btn key={id} id={leftButtonId('dolphin', id)} onClick={() => trigger(b.action)} enabled={b.enabled}>
+                  <b.Icon style={{ width: ICON_SZ, height: ICON_SZ }} fill={b.fill} stroke="none" />
+                </Btn>
+              ) : null;
+            })}
+            <Sep />
+          </React.Fragment>
+        );
+      })}
 
       {/* Quick places from KDE's Places sidebar */}
       {places.map(p => (

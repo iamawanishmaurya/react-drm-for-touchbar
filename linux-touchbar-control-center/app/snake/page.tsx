@@ -173,8 +173,8 @@ export default function SnakePage({ width, height }: { width: number; height: nu
 
       {/* scoreboard */}
       <Box style={{ flexDirection: 'column', gap: 2, paddingHorizontal: 10 }}>
-        <Text color="#4ade80" fontSize={18} fontFamily="IosevkaTerm Nerd Font">SCORE {score}</Text>
-        <Text color={SELECTED_THEME.textSecondary} fontSize={14}>BEST {best}</Text>
+        <Text color="#4ade80" fontSize={18} fontFamily="IosevkaTerm Nerd Font">{`SCORE ${score}`}</Text>
+        <Text color={SELECTED_THEME.textSecondary} fontSize={14}>{`BEST ${best}`}</Text>
       </Box>
     </Box>
   );

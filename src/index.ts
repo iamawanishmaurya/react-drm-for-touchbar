@@ -36,6 +36,11 @@ export type { TouchGestureOptions } from './input/use-touch-gesture';
 export { useGestureRegion } from './input/use-gesture-region';
 export type { GestureRegion } from './input/touch-registry';
 export { parseColor, serializeScene } from './scene/serialize';
+export { sceneToSvg } from './scene/svg-serialize';
+export type { SceneSvgOptions } from './scene/svg-serialize';
+export { sceneBoxes } from './scene/scene-boxes';
+export type { SceneBox } from './scene/scene-boxes';
+export type { LayoutBox } from './scene/layout';
 export type { DrawCommand } from './scene/serialize';
 export type { SceneNode, BoxNode, TextNode, SvgNode, GifNode, SvgContainerNode, SvgElementNode, RootContainer } from './scene/types';
 export type { Style } from './scene/style';
@@ -51,7 +56,7 @@ export { appIconSource, setIconTheme } from './appIcon';
 export { createLogger } from './logger';
 export type { Logger } from './logger';
 export { startPreviewServer } from './dev/preview-server';
-export type { PreviewServerOptions, PreviewServerHandle } from './dev/preview-server';
+export type { PreviewServerOptions, PreviewServerHandle, PreviewJsonRoute } from './dev/preview-server';
 export {
   animated,
   useSpring, useSpringValue, useSprings, useTransition,

@@ -8,6 +8,9 @@ import { MdPlayArrow, MdPause } from 'react-icons/md';
 import { useVlc } from '@/lib/hooks/useVlc';
 import { FONT } from '@/components/launcher/theme';
 import { SELECTED_THEME } from '@/lib/theme';
+import { useLayout } from '@/lib/utils/layoutStore';
+import { LEFT_BUILT_IN } from '@/lib/utils/layoutSchema';
+import { resolveLeftGroup, leftButtonId } from '../leftOrder';
 
 const ACCENT = SELECTED_THEME.primary;
 
@@ -20,6 +23,8 @@ function hms(us: number): string {
 
 export default function VlcPanel({ width, height }: { width: number; height: number }) {
   const { status, positionUs, lengthUs, playPause, seek } = useVlc();
+  // One arrangeable button (LEFT_LAYOUT.vlc.controls) — it can be hidden.
+  const showPlay = resolveLeftGroup(useLayout(), 'vlc', 'controls', LEFT_BUILT_IN.vlc.controls).includes('playPause');
   const [dragUs, setDragUs] = useState<number | null>(null);
   const shownUs = dragUs ?? positionUs;
   const pct = lengthUs > 0 ? Math.max(0, Math.min(1, shownUs / lengthUs)) : 0;
@@ -29,7 +34,7 @@ export default function VlcPanel({ width, height }: { width: number; height: num
   const PLAY_W = 110, TIME_W = 96, GAP = 8;
   const trackH = Math.max(10, height - 8);   // full height − 16px
   const radius = 10;                           // small corners
-  const barW = Math.max(80, width - PLAY_W - TIME_W * 2 - GAP * 3);
+  const barW = Math.max(80, width - (showPlay ? PLAY_W + GAP : 0) - TIME_W * 2 - GAP * 2);
   const fillW = Math.round(barW * pct);
 
   // Tap-to-seek: turn the touch X into a fraction of the bar's live bounds and
@@ -65,7 +70,8 @@ export default function VlcPanel({ width, height }: { width: number; height: num
 
   return (
     <Box style={{ flexDirection: 'row', alignItems: 'center', gap: GAP, flex: 1 }}>
-      <Button
+      {showPlay && <Button
+        id={leftButtonId('vlc', 'playPause')}
         width={PLAY_W}
         height={height}
         color={SELECTED_THEME.surface}
@@ -76,7 +82,7 @@ export default function VlcPanel({ width, height }: { width: number; height: num
         {status === 'Playing'
           ? <MdPause style={{ width: 32, height: 32 }} fill={SELECTED_THEME.textPrimary} stroke="none" />
           : <MdPlayArrow style={{ width: 32, height: 32 }} fill={SELECTED_THEME.textPrimary} stroke="none" />}
-      </Button>
+      </Button>}
 
       <Box style={{ width: TIME_W, alignItems: 'center', justifyContent: 'center' }}>
         <Text color={SELECTED_THEME.textPrimary} fontSize={16} fontFamily={FONT}>{hms(shownUs)}</Text>

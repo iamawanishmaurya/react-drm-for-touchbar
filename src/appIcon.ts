@@ -1,5 +1,6 @@
 import { readFileSync, existsSync, mkdirSync, writeFileSync } from 'fs';
 import { join, isAbsolute, basename } from 'path';
+import { tmpdir } from 'os';
 
 /**
  * Resolve a freedesktop icon name (e.g. `org.kde.dolphin`, `firefox`) to a file
@@ -20,7 +21,10 @@ const ICON_BASES = [
   '/usr/local/share/icons',
 ];
 const PIXMAPS = '/usr/share/pixmaps';
-const TMP_DIR = '/tmp/.react-drm-icons';
+// Per user: a shared /tmp dir created by one instance (say a root system
+// service) is unwritable for another (a user-run preview), which then crashed
+// converting an icon. tmpdir() honours $TMPDIR.
+const TMP_DIR = join(tmpdir(), `.react-drm-icons-${process.getuid?.() ?? 'user'}`);
 
 /** Read `Theme=` from a named section of a simple INI file. */
 function iniValue(file: string, section: string, key: string): string | null {

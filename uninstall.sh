@@ -19,6 +19,8 @@ UDEV_RULE="/etc/udev/rules.d/99-react-drm.rules"
 LEGACY_UDEV_RULE="/etc/udev/rules.d/99-react-drm-uinput.rules"
 UINPUT_MODULES_LOAD_FILE="/etc/modules-load.d/react-drm-uinput.conf"
 CONFIG_GUI_LAUNCHER="$HOME/.local/share/applications/react-drm-config-gui.desktop"
+TBC_SERVICE_FILE="$HOME/.config/systemd/user/touchbar-control.service"
+TBC_LAUNCHER="$HOME/.local/share/applications/touchbar-control.desktop"
 
 GUI_MODE=0
 
@@ -90,7 +92,8 @@ confirm_uninstall() {
   command -v sudo >/dev/null 2>&1 || fail "required command is missing: sudo"
   cat <<'EOF'
 This removes the react-drm user service and udev rules and restores the
-firmware Touch Bar interface.
+firmware Touch Bar interface. It also removes the touchbar-control editor
+service and launchers, and the Touch Bar recovery services if installed.
 
 Project files, npm dependencies, system packages and video/input group
 memberships are not removed.
@@ -143,6 +146,24 @@ remove_udev_rules() {
   privileged udevadm trigger --action=add --subsystem-match=misc --sysname-match=uinput
 }
 
+remove_touchbar_control() {
+  if [[ -e "$TBC_SERVICE_FILE" ]]; then
+    info "Removing the touchbar-control user service"
+    systemctl --user disable --now touchbar-control.service 2>/dev/null || true
+    rm -f "$TBC_SERVICE_FILE"
+    systemctl --user daemon-reload
+  fi
+  [[ -e "$TBC_LAUNCHER" ]] && { info "Removing the touchbar-control launcher"; rm -f "$TBC_LAUNCHER"; }
+  return 0
+}
+
+# Only present after ./install.sh install --with-recovery.
+remove_recovery_hooks() {
+  [[ -e /etc/systemd/system/touchbar-recover.service || -e /usr/local/sbin/react-drm-recover ]] || return 0
+  info "Removing the Touch Bar recovery services"
+  privileged "$SCRIPT_DIR/packaging/install-recovery.sh" --remove
+}
+
 remove_config_gui_launcher() {
   [[ -e "$CONFIG_GUI_LAUNCHER" ]] || return 0
   info "Removing config editor launcher"
@@ -163,8 +184,10 @@ main() {
       [[ "${2:-}" == --gui ]] && GUI_MODE=1
       gui_phase uninstall start
       confirm_uninstall
+      remove_touchbar_control
       remove_service
       remove_udev_rules
+      remove_recovery_hooks
       remove_config_gui_launcher
       info "Uninstallation completed successfully"
       gui_phase uninstall done

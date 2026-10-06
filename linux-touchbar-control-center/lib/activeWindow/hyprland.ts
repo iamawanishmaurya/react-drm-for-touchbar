@@ -2,13 +2,14 @@ import net from 'net';
 import fs from 'fs';
 import type { ActiveWindow, ActiveWindowBackend } from './types';
 import { EMPTY } from './types';
+import { sessionRuntimeDir } from '@/lib/utils/sessionRuntime';
 
 // Auto-discover the Hyprland instance dir — works even when running as root
 // (where HYPRLAND_INSTANCE_SIGNATURE may not be in the environment).
 // Also used by detect.ts as the "is Hyprland running" probe.
 export function findHyprDir(): string | null {
   const sig     = process.env.HYPRLAND_INSTANCE_SIGNATURE;
-  const runtime = process.env.XDG_RUNTIME_DIR ?? '/run/user/1000';
+  const runtime = sessionRuntimeDir();
 
   const bases = [`${runtime}/hypr`, '/tmp/hypr'];
 

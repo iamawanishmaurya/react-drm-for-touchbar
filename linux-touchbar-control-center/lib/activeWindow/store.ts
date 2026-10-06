@@ -39,15 +39,34 @@ async function backendsForSession(): Promise<ActiveWindowBackend[]> {
   return BACKENDS; // unknown — probe everything
 }
 
-let current = EMPTY;
+let current = EMPTY;   // what consumers see (the override, when one is set)
+let real = EMPTY;      // what the compositor reports
+// A sandbox preview can pretend a window is focused (touchbar-control's
+// "Preview as app"); never set on the real bar.
+let override: ActiveWindow | null = null;
 const listeners = new Set<Listener>();
 let stop: (() => void) | null = null;
 let starting = false;
 
-function push(w: ActiveWindow): void {
+function emit(w: ActiveWindow): void {
   if (w.class === current.class && w.title === current.title && w.pid === current.pid) return;
   current = w;
   listeners.forEach(l => l(w));
+}
+
+function push(w: ActiveWindow): void {
+  real = w;
+  if (!override) emit(w);
+}
+
+/** Pretend `w` is focused (null: follow the compositor again). */
+export function setActiveWindowOverride(w: ActiveWindow | null): void {
+  override = w;
+  emit(override ?? real);
+}
+
+export function getActiveWindowState(): { override: ActiveWindow | null; real: ActiveWindow } {
+  return { override, real };
 }
 
 async function ensureStarted(): Promise<void> {
@@ -67,7 +86,7 @@ async function ensureStarted(): Promise<void> {
   }
   starting = false;
   if (!stop) log.warn('no active-window backend available');
-  else if (listeners.size === 0) { stop(); stop = null; current = EMPTY; } // everyone left mid-start
+  else if (listeners.size === 0) { stop(); stop = null; real = EMPTY; if (!override) current = EMPTY; } // everyone left mid-start
 }
 
 export function getActiveWindow(): ActiveWindow {
@@ -83,7 +102,8 @@ export function subscribeActiveWindow(listener: Listener): () => void {
     if (listeners.size === 0 && stop) {
       stop();
       stop = null;
-      current = EMPTY;
+      real = EMPTY;
+      if (!override) current = EMPTY;
     }
   };
 }
